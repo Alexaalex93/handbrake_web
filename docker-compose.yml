@@ -1,0 +1,72 @@
+# ============================================================
+# HandBrake Web - Docker Compose
+#
+# Usage:
+#   CPU only:  docker compose up -d
+#   With GPU:  docker compose --profile gpu up -d
+#
+# For NVIDIA GPU, install nvidia-container-toolkit first:
+#   https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html
+# ============================================================
+
+services:
+  # --- CPU-only mode (default) ---
+  handbrake-web:
+    build: .
+    image: alex/handbrake-web:latest
+    container_name: handbrake-web
+    profiles: ["", "cpu"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - handbrake-data:/app/data        # SQLite database persistence
+      - /media:/media                    # Media directories (adjust to your paths)
+      # Map your specific input/output dirs:
+      # - /path/to/movies:/input
+      # - /path/to/encoded:/output
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/system"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # --- NVIDIA GPU mode ---
+  handbrake-web-gpu:
+    build: .
+    image: alex/handbrake-web:latest
+    container_name: handbrake-web
+    profiles: ["gpu"]
+    ports:
+      - "3000:3000"
+    volumes:
+      - handbrake-data:/app/data
+      - /media:/media
+      # Map your specific input/output dirs:
+      # - /path/to/movies:/input
+      # - /path/to/encoded:/output
+    environment:
+      - NODE_ENV=production
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, video, compute]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/system"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  handbrake-data:
+    driver: local

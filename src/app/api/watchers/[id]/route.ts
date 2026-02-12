@@ -1,0 +1,120 @@
+import { NextRequest, NextResponse } from "next/server"
+import { getDb } from "@/lib/db"
+import { getWatcherManager } from "@/lib/watcher/manager"
+import type { WatchedFolder } from "@/types/watcher"
+
+function rowToWatcher(row: any): WatchedFolder {
+  return {
+    id: row.id,
+    path: row.path,
+    enabled: !!row.enabled,
+    recursive: !!row.recursive,
+    scanInterval: row.scan_interval,
+    fileExtensions: row.file_extensions,
+    presetId: row.preset_id,
+    outputMode: row.output_mode,
+    outputDir: row.output_dir,
+    outputPattern: row.output_pattern,
+    minFileSize: row.min_file_size,
+    lastScanAt: row.last_scan_at,
+    createdAt: row.created_at,
+  }
+}
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const db = getDb()
+    const row = db.prepare("SELECT * FROM watched_folders WHERE id = ?").get(id)
+
+    if (!row) {
+      return NextResponse.json({ error: "Watcher not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(rowToWatcher(row))
+  } catch (error) {
+    console.error("GET /api/watchers/[id] error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch watcher" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const db = getDb()
+    const existing = db.prepare("SELECT * FROM watched_folders WHERE id = ?").get(id) as any
+
+    if (!existing) {
+      return NextResponse.json({ error: "Watcher not found" }, { status: 404 })
+    }
+
+    const body = await request.json()
+
+    const path = body.path ?? existing.path
+    const enabled = body.enabled !== undefined ? (body.enabled ? 1 : 0) : existing.enabled
+    const recursive = body.recursive !== undefined ? (body.recursive ? 1 : 0) : existing.recursive
+    const scanInterval = body.scanInterval ?? existing.scan_interval
+    const fileExtensions = body.fileExtensions ?? existing.file_extensions
+    const presetId = body.presetId !== undefined ? body.presetId : existing.preset_id
+    const outputMode = body.outputMode ?? existing.output_mode
+    const outputDir = body.outputDir !== undefined ? body.outputDir : existing.output_dir
+    const outputPattern = body.outputPattern ?? existing.output_pattern
+    const minFileSize = body.minFileSize ?? existing.min_file_size
+
+    db.prepare(`
+      UPDATE watched_folders SET path = ?, enabled = ?, recursive = ?, scan_interval = ?,
+        file_extensions = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?
+      WHERE id = ?
+    `).run(path, enabled, recursive, scanInterval, fileExtensions, presetId, outputMode, outputDir, outputPattern, minFileSize, id)
+
+    // Restart the watcher with new settings
+    const watcherManager = getWatcherManager()
+    watcherManager.restartWatcher(Number(id))
+
+    const updated = db.prepare("SELECT * FROM watched_folders WHERE id = ?").get(id)
+    return NextResponse.json(rowToWatcher(updated))
+  } catch (error) {
+    console.error("PUT /api/watchers/[id] error:", error)
+    return NextResponse.json(
+      { error: "Failed to update watcher" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const db = getDb()
+    const existing = db.prepare("SELECT * FROM watched_folders WHERE id = ?").get(id)
+
+    if (!existing) {
+      return NextResponse.json({ error: "Watcher not found" }, { status: 404 })
+    }
+
+    // Stop the watcher first
+    const watcherManager = getWatcherManager()
+    watcherManager.stopWatcher(Number(id))
+
+    db.prepare("DELETE FROM watched_folders WHERE id = ?").run(id)
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error("DELETE /api/watchers/[id] error:", error)
+    return NextResponse.json(
+      { error: "Failed to delete watcher" },
+      { status: 500 }
+    )
+  }
+}
