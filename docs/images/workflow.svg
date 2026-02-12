@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#22c55e"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrowPurple" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+      <polygon points="0,0 8,3 0,6" fill="#a855f7"/>
+    </marker>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#121212"/>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" fill="white" font-size="18" font-weight="600">Encoding Workflow</text>
+  <text x="400" y="48" text-anchor="middle" fill="#888" font-size="11">Manual and automated encoding pipelines</text>
+
+  <!-- ===== MANUAL WORKFLOW ===== -->
+  <text x="40" y="85" fill="white" font-size="14" font-weight="600">Manual Workflow</text>
+  <rect x="40" y="90" width="720" height="2" rx="1" fill="#2e2e2e"/>
+
+  <!-- Step 1: Add Source -->
+  <rect x="40" y="110" width="120" height="100" rx="10" fill="#171717" stroke="#3b82f6" stroke-width="1.5"/>
+  <!-- Step number -->
+  <circle cx="100" cy="126" r="10" fill="#3b82f6"/>
+  <text x="100" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="700">1</text>
+  <!-- Folder icon -->
+  <rect x="82" y="146" width="36" height="24" rx="4" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="82" y="141" width="18" height="7" rx="2" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="100" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="500">Add Source</text>
+  <text x="100" y="206" text-anchor="middle" fill="#888" font-size="8">Select media file</text>
+
+  <!-- Arrow 1->2 -->
+  <line x1="160" y1="160" x2="185" y2="160" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Step 2: Configure -->
+  <rect x="195" y="110" width="120" height="100" rx="10" fill="#171717" stroke="#f59e0b" stroke-width="1.5"/>
+  <circle cx="255" cy="126" r="10" fill="#f59e0b"/>
+  <text x="255" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="700">2</text>
+  <!-- Sliders icon -->
+  <line x1="237" y1="148" x2="237" y2="172" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="237" cy="155" r="4" fill="#0d0d0d" stroke="#f59e0b" stroke-width="1.5"/>
+  <line x1="252" y1="148" x2="252" y2="172" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="252" cy="165" r="4" fill="#0d0d0d" stroke="#f59e0b" stroke-width="1.5"/>
+  <line x1="267" y1="148" x2="267" y2="172" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="267" cy="157" r="4" fill="#0d0d0d" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="255" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="500">Configure</text>
+  <text x="255" y="206" text-anchor="middle" fill="#888" font-size="8">Encoding settings</text>
+
+  <!-- Arrow 2->3 -->
+  <line x1="315" y1="160" x2="340" y2="160" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Step 3: Queue -->
+  <rect x="350" y="110" width="120" height="100" rx="10" fill="#171717" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="410" cy="126" r="10" fill="#a855f7"/>
+  <text x="410" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="700">3</text>
+  <!-- List icon -->
+  <rect x="395" y="148" width="30" height="5" rx="2" fill="#a855f7" fill-opacity="0.6"/>
+  <rect x="395" y="157" width="30" height="5" rx="2" fill="#a855f7" fill-opacity="0.8"/>
+  <rect x="395" y="166" width="30" height="5" rx="2" fill="#a855f7"/>
+  <circle cx="391" cy="150" r="2" fill="#a855f7"/>
+  <circle cx="391" cy="159" r="2" fill="#a855f7"/>
+  <circle cx="391" cy="168" r="2" fill="#a855f7"/>
+  <text x="410" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="500">Queue</text>
+  <text x="410" y="206" text-anchor="middle" fill="#888" font-size="8">Add to job queue</text>
+
+  <!-- Arrow 3->4 -->
+  <line x1="470" y1="160" x2="495" y2="160" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Step 4: Encode -->
+  <rect x="505" y="110" width="120" height="100" rx="10" fill="#171717" stroke="#22c55e" stroke-width="2"/>
+  <circle cx="565" cy="126" r="10" fill="#22c55e"/>
+  <text x="565" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="700">4</text>
+  <!-- Gear icon -->
+  <circle cx="565" cy="160" r="14" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <circle cx="565" cy="160" r="5" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <!-- Gear teeth -->
+  <line x1="565" y1="144" x2="565" y2="148" stroke="#22c55e" stroke-width="3"/>
+  <line x1="565" y1="172" x2="565" y2="176" stroke="#22c55e" stroke-width="3"/>
+  <line x1="549" y1="160" x2="553" y2="160" stroke="#22c55e" stroke-width="3"/>
+  <line x1="577" y1="160" x2="581" y2="160" stroke="#22c55e" stroke-width="3"/>
+  <text x="565" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="500">Encode</text>
+  <text x="565" y="206" text-anchor="middle" fill="#888" font-size="8">HandBrakeCLI</text>
+
+  <!-- Arrow 4->5 -->
+  <line x1="625" y1="160" x2="650" y2="160" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Step 5: Output -->
+  <rect x="660" y="110" width="120" height="100" rx="10" fill="#171717" stroke="#22c55e" stroke-width="1.5"/>
+  <circle cx="720" cy="126" r="10" fill="#22c55e"/>
+  <text x="720" y="130" text-anchor="middle" fill="white" font-size="9" font-weight="700">5</text>
+  <!-- File icon -->
+  <rect x="705" y="146" width="24" height="28" rx="3" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <polyline points="721,146 721,153 729,153" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+  <line x1="710" y1="160" x2="724" y2="160" stroke="#22c55e" stroke-width="1"/>
+  <line x1="710" y1="165" x2="724" y2="165" stroke="#22c55e" stroke-width="1"/>
+  <text x="720" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="500">Output</text>
+  <text x="720" y="206" text-anchor="middle" fill="#888" font-size="8">Encoded file</text>
+
+  <!-- ===== AUTOMATED WORKFLOW ===== -->
+  <text x="40" y="260" fill="white" font-size="14" font-weight="600">Automated Workflow</text>
+  <rect x="40" y="265" width="720" height="2" rx="1" fill="#2e2e2e"/>
+  <rect x="187" y="253" width="72" height="16" rx="8" fill="#a855f7" fill-opacity="0.15"/>
+  <text x="199" y="264" fill="#a855f7" font-size="9" font-weight="500">Watcher</text>
+
+  <!-- Auto Step 1: Watch Folder -->
+  <rect x="40" y="285" width="130" height="100" rx="10" fill="#171717" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="105" cy="301" r="10" fill="#a855f7"/>
+  <text x="105" y="305" text-anchor="middle" fill="white" font-size="9" font-weight="700">1</text>
+  <!-- Eye/Watch icon -->
+  <ellipse cx="105" cy="340" rx="16" ry="10" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="105" cy="340" r="5" fill="#a855f7" fill-opacity="0.3" stroke="#a855f7" stroke-width="1"/>
+  <circle cx="105" cy="340" r="2" fill="#a855f7"/>
+  <text x="105" y="368" text-anchor="middle" fill="white" font-size="11" font-weight="500">Watch Folder</text>
+  <text x="105" y="382" text-anchor="middle" fill="#888" font-size="8">Monitor directory</text>
+
+  <!-- Arrow -->
+  <line x1="170" y1="335" x2="198" y2="335" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Auto Step 2: Detect -->
+  <rect x="208" y="285" width="130" height="100" rx="10" fill="#171717" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="273" cy="301" r="10" fill="#a855f7"/>
+  <text x="273" y="305" text-anchor="middle" fill="white" font-size="9" font-weight="700">2</text>
+  <!-- Detect icon (magnifier + file) -->
+  <circle cx="268" cy="340" r="10" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+  <line x1="276" y1="347" x2="284" y2="355" stroke="#a855f7" stroke-width="2"/>
+  <text x="273" y="368" text-anchor="middle" fill="white" font-size="10" font-weight="500">Detect Files</text>
+  <text x="273" y="382" text-anchor="middle" fill="#888" font-size="8">New files found</text>
+
+  <!-- Arrow -->
+  <line x1="338" y1="335" x2="366" y2="335" stroke="#a855f7" stroke-width="2" marker-end="url(#arrowPurple)"/>
+
+  <!-- Auto Step 3: Auto Queue -->
+  <rect x="376" y="285" width="130" height="100" rx="10" fill="#171717" stroke="#a855f7" stroke-width="1.5"/>
+  <circle cx="441" cy="301" r="10" fill="#a855f7"/>
+  <text x="441" y="305" text-anchor="middle" fill="white" font-size="9" font-weight="700">3</text>
+  <!-- Auto queue icon (lightning + list) -->
+  <polygon points="438,322 432,340 438,338 436,356 448,332 440,334" fill="#a855f7"/>
+  <text x="441" y="368" text-anchor="middle" fill="white" font-size="10" font-weight="500">Auto Queue</text>
+  <text x="441" y="382" text-anchor="middle" fill="#888" font-size="8">Apply preset rules</text>
+
+  <!-- Arrow -->
+  <line x1="506" y1="335" x2="534" y2="335" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Auto Step 4: Encode (shared concept) -->
+  <rect x="544" y="285" width="100" height="100" rx="10" fill="#171717" stroke="#22c55e" stroke-width="2"/>
+  <circle cx="594" cy="301" r="10" fill="#22c55e"/>
+  <text x="594" y="305" text-anchor="middle" fill="white" font-size="9" font-weight="700">4</text>
+  <circle cx="594" cy="336" r="14" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <circle cx="594" cy="336" r="5" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <line x1="594" y1="320" x2="594" y2="324" stroke="#22c55e" stroke-width="3"/>
+  <line x1="594" y1="348" x2="594" y2="352" stroke="#22c55e" stroke-width="3"/>
+  <line x1="578" y1="336" x2="582" y2="336" stroke="#22c55e" stroke-width="3"/>
+  <line x1="606" y1="336" x2="610" y2="336" stroke="#22c55e" stroke-width="3"/>
+  <text x="594" y="368" text-anchor="middle" fill="white" font-size="11" font-weight="500">Encode</text>
+  <text x="594" y="382" text-anchor="middle" fill="#888" font-size="8">HandBrakeCLI</text>
+
+  <!-- Arrow -->
+  <line x1="644" y1="335" x2="672" y2="335" stroke="#22c55e" stroke-width="2" marker-end="url(#arrowGreen)"/>
+
+  <!-- Auto Step 5: Output -->
+  <rect x="682" y="285" width="100" height="100" rx="10" fill="#171717" stroke="#22c55e" stroke-width="1.5"/>
+  <circle cx="732" cy="301" r="10" fill="#22c55e"/>
+  <text x="732" y="305" text-anchor="middle" fill="white" font-size="9" font-weight="700">5</text>
+  <rect x="718" y="322" width="24" height="28" rx="3" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <polyline points="734,322 734,329 742,329" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+  <line x1="723" y1="336" x2="737" y2="336" stroke="#22c55e" stroke-width="1"/>
+  <line x1="723" y1="341" x2="737" y2="341" stroke="#22c55e" stroke-width="1"/>
+  <text x="732" y="368" text-anchor="middle" fill="white" font-size="11" font-weight="500">Output</text>
+  <text x="732" y="382" text-anchor="middle" fill="#888" font-size="8">Encoded file</text>
+
+  <!-- Notifications / Events section -->
+  <rect x="40" y="410" width="720" height="75" rx="10" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="60" y="434" fill="white" font-size="12" font-weight="600">Events &amp; Notifications</text>
+  <text x="60" y="450" fill="#888" font-size="10">Real-time progress updates via Server-Sent Events (SSE)</text>
+
+  <!-- Event flow icons -->
+  <rect x="60" y="458" width="80" height="20" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="72" y="472" fill="#3b82f6" font-size="9">job:started</text>
+
+  <rect x="150" y="458" width="86" height="20" rx="4" fill="#f59e0b" fill-opacity="0.15"/>
+  <text x="162" y="472" fill="#f59e0b" font-size="9">job:progress</text>
+
+  <rect x="246" y="458" width="92" height="20" rx="4" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="258" y="472" fill="#22c55e" font-size="9">job:completed</text>
+
+  <rect x="348" y="458" width="72" height="20" rx="4" fill="#ef4444" fill-opacity="0.15"/>
+  <text x="360" y="472" fill="#ef4444" font-size="9">job:error</text>
+
+  <rect x="430" y="458" width="94" height="20" rx="4" fill="#a855f7" fill-opacity="0.15"/>
+  <text x="442" y="472" fill="#a855f7" font-size="9">watcher:found</text>
+
+  <rect x="534" y="458" width="80" height="20" rx="4" fill="#a855f7" fill-opacity="0.15"/>
+  <text x="546" y="472" fill="#a855f7" font-size="9">watcher:scan</text>
+
+  <rect x="624" y="458" width="80" height="20" rx="4" fill="#888" fill-opacity="0.15"/>
+  <text x="636" y="472" fill="#888" font-size="9">system:stats</text>
+</svg>

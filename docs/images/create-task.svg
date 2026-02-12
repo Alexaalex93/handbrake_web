@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background (dimmed) -->
+  <rect width="800" height="500" fill="#121212"/>
+  <!-- Overlay dim -->
+  <rect width="800" height="500" fill="black" fill-opacity="0.6"/>
+
+  <!-- Modal -->
+  <rect x="80" y="20" width="640" height="460" rx="12" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+  <!-- Modal shadow effect -->
+  <rect x="80" y="20" width="640" height="460" rx="12" fill="none" stroke="black" stroke-width="4" stroke-opacity="0.3" transform="translate(2,2)"/>
+  <rect x="80" y="20" width="640" height="460" rx="12" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Modal header -->
+  <text x="110" y="52" fill="white" font-size="18" font-weight="600">Create New Task</text>
+  <!-- Close button -->
+  <rect x="680" y="30" width="28" height="28" rx="6" fill="#2e2e2e"/>
+  <text x="689" y="49" fill="#888" font-size="16">&#10005;</text>
+
+  <!-- Step indicators -->
+  <line x1="110" y1="70" x2="700" y2="70" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Step 1: Source (active) -->
+  <circle cx="170" cy="95" r="14" fill="#22c55e"/>
+  <text x="170" y="100" text-anchor="middle" fill="white" font-size="11" font-weight="700">1</text>
+  <text x="170" y="120" text-anchor="middle" fill="#22c55e" font-size="11" font-weight="500">Source</text>
+
+  <!-- Connector line -->
+  <line x1="184" y1="95" x2="296" y2="95" stroke="#2e2e2e" stroke-width="2"/>
+
+  <!-- Step 2: Encode -->
+  <circle cx="310" cy="95" r="14" fill="none" stroke="#2e2e2e" stroke-width="2"/>
+  <text x="310" y="100" text-anchor="middle" fill="#888" font-size="11" font-weight="700">2</text>
+  <text x="310" y="120" text-anchor="middle" fill="#888" font-size="11">Encode</text>
+
+  <!-- Connector line -->
+  <line x1="324" y1="95" x2="436" y2="95" stroke="#2e2e2e" stroke-width="2"/>
+
+  <!-- Step 3: Output -->
+  <circle cx="450" cy="95" r="14" fill="none" stroke="#2e2e2e" stroke-width="2"/>
+  <text x="450" y="100" text-anchor="middle" fill="#888" font-size="11" font-weight="700">3</text>
+  <text x="450" y="120" text-anchor="middle" fill="#888" font-size="11">Output</text>
+
+  <!-- Connector line -->
+  <line x1="464" y1="95" x2="576" y2="95" stroke="#2e2e2e" stroke-width="2"/>
+
+  <!-- Step 4: Review -->
+  <circle cx="590" cy="95" r="14" fill="none" stroke="#2e2e2e" stroke-width="2"/>
+  <text x="590" y="100" text-anchor="middle" fill="#888" font-size="11" font-weight="700">4</text>
+  <text x="590" y="120" text-anchor="middle" fill="#888" font-size="11">Review</text>
+
+  <!-- Source file input section -->
+  <text x="110" y="155" fill="white" font-size="14" font-weight="500">Source File</text>
+  <text x="110" y="172" fill="#888" font-size="11">Select a media file to encode</text>
+
+  <!-- File input -->
+  <rect x="110" y="182" width="420" height="38" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="124" y="205" fill="#666" font-size="12">/media/movies/movie_2024.mkv</text>
+  <!-- Browse button -->
+  <rect x="540" y="182" width="72" height="38" rx="6" fill="#2e2e2e"/>
+  <text x="556" y="205" fill="white" font-size="12" font-weight="500">Browse</text>
+  <!-- Scan button -->
+  <rect x="620" y="182" width="72" height="38" rx="6" fill="#22c55e"/>
+  <text x="641" y="205" fill="white" font-size="12" font-weight="600">Scan</text>
+
+  <!-- Scan results section -->
+  <line x1="110" y1="235" x2="700" y2="235" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="110" y="260" fill="white" font-size="14" font-weight="500">Scan Results</text>
+  <rect x="658" y="246" width="42" height="18" rx="9" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="665" y="259" fill="#22c55e" font-size="9" font-weight="500">Ready</text>
+
+  <!-- Results grid -->
+  <!-- Duration -->
+  <rect x="110" y="274" width="140" height="50" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="124" y="292" fill="#888" font-size="10">Duration</text>
+  <text x="124" y="312" fill="white" font-size="14" font-weight="500">1:42:33</text>
+
+  <!-- Resolution -->
+  <rect x="260" y="274" width="140" height="50" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="274" y="292" fill="#888" font-size="10">Resolution</text>
+  <text x="274" y="312" fill="white" font-size="14" font-weight="500">1920 x 1080</text>
+
+  <!-- Codec -->
+  <rect x="410" y="274" width="140" height="50" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="424" y="292" fill="#888" font-size="10">Video Codec</text>
+  <text x="424" y="312" fill="white" font-size="14" font-weight="500">H.264 (AVC)</text>
+
+  <!-- File Size -->
+  <rect x="560" y="274" width="140" height="50" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="574" y="292" fill="#888" font-size="10">File Size</text>
+  <text x="574" y="312" fill="white" font-size="14" font-weight="500">4.2 GB</text>
+
+  <!-- Audio tracks -->
+  <text x="110" y="348" fill="white" font-size="12" font-weight="500">Audio Tracks</text>
+  <rect x="110" y="356" width="280" height="32" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="118" y="362" width="6" height="6" rx="3" fill="#3b82f6"/>
+  <text x="130" y="376" fill="#ccc" font-size="11">Track 1: English (AAC, 5.1ch)</text>
+  <rect x="118" y="376" width="6" height="6" rx="3" fill="transparent"/>
+
+  <rect x="110" y="392" width="280" height="26" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="118" y="400" width="6" height="6" rx="3" fill="#3b82f6"/>
+  <text x="130" y="410" fill="#ccc" font-size="11">Track 2: Spanish (AC3, Stereo)</text>
+
+  <!-- Subtitle tracks -->
+  <text x="420" y="348" fill="white" font-size="12" font-weight="500">Subtitle Tracks</text>
+  <rect x="420" y="356" width="280" height="32" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="428" y="362" width="6" height="6" rx="3" fill="#a855f7"/>
+  <text x="440" y="376" fill="#ccc" font-size="11">Track 1: English (SRT)</text>
+
+  <rect x="420" y="392" width="280" height="26" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="428" y="400" width="6" height="6" rx="3" fill="#a855f7"/>
+  <text x="440" y="410" fill="#ccc" font-size="11">Track 2: French (SRT)</text>
+
+  <!-- Footer buttons -->
+  <line x1="80" y1="440" x2="720" y2="440" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="110" y="450" width="80" height="34" rx="6" fill="#2e2e2e"/>
+  <text x="133" y="471" fill="#ccc" font-size="12" font-weight="500">Cancel</text>
+  <rect x="610" y="450" width="90" height="34" rx="6" fill="#22c55e"/>
+  <text x="626" y="471" fill="white" font-size="12" font-weight="600">Next Step</text>
+  <text x="625" y="471" fill="white" font-size="12" font-weight="600">Next Step &#8594;</text>
+</svg>

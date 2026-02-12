@@ -1,0 +1,175 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+    <linearGradient id="greenGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#16a34a"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#121212"/>
+
+  <!-- Sidebar -->
+  <rect width="180" height="500" fill="#0d0d0d"/>
+  <line x1="180" y1="0" x2="180" y2="500" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Logo area -->
+  <rect x="16" y="16" width="148" height="40" rx="6" fill="#171717"/>
+  <circle cx="38" cy="36" r="12" fill="none" stroke="#22c55e" stroke-width="2"/>
+  <text x="36" y="40" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="bold">H</text>
+  <text x="56" y="40" fill="white" font-size="13" font-weight="600">HandBrake</text>
+
+  <!-- Nav: Dashboard -->
+  <rect x="22" y="86" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="31" y="86" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="22" y="95" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="31" y="95" width="7" height="7" rx="1" fill="#888"/>
+  <text x="46" y="99" fill="#999" font-size="13">Dashboard</text>
+
+  <!-- Nav: Queue - Active -->
+  <rect x="8" y="112" width="164" height="36" rx="6" fill="#22c55e" fill-opacity="0.15"/>
+  <rect x="8" y="112" width="3" height="36" rx="1.5" fill="#22c55e"/>
+  <rect x="22" y="122" width="16" height="2" rx="1" fill="#22c55e"/>
+  <rect x="22" y="127" width="16" height="2" rx="1" fill="#22c55e"/>
+  <rect x="22" y="132" width="16" height="2" rx="1" fill="#22c55e"/>
+  <text x="46" y="133" fill="#22c55e" font-size="13" font-weight="500">Queue</text>
+  <rect x="130" y="123" width="22" height="16" rx="8" fill="#22c55e"/>
+  <text x="141" y="134" text-anchor="middle" fill="white" font-size="9" font-weight="600">4</text>
+
+  <!-- Nav: Presets -->
+  <rect x="24" y="157" width="12" height="14" rx="2" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="169" fill="#999" font-size="13">Presets</text>
+
+  <!-- Nav: Watchers -->
+  <circle cx="30" cy="196" r="7" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="200" fill="#999" font-size="13">Watchers</text>
+
+  <!-- Nav: History -->
+  <circle cx="30" cy="228" r="7" fill="none" stroke="#888" stroke-width="1.5"/>
+  <polyline points="30,223 30,228 34,230" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="232" fill="#999" font-size="13">History</text>
+
+  <!-- Nav: Settings -->
+  <circle cx="30" cy="260" r="7" fill="none" stroke="#888" stroke-width="1.5"/>
+  <circle cx="30" cy="260" r="2.5" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="264" fill="#999" font-size="13">Settings</text>
+
+  <!-- Main Content -->
+  <!-- Header -->
+  <text x="200" y="40" fill="white" font-size="20" font-weight="600">Queue</text>
+  <text x="200" y="58" fill="#888" font-size="12">Manage encoding tasks</text>
+
+  <!-- New Task Button -->
+  <rect x="680" y="22" width="100" height="34" rx="6" fill="#22c55e"/>
+  <text x="700" y="43" fill="white" font-size="13" font-weight="600">+ New Task</text>
+
+  <!-- Filter tabs -->
+  <rect x="200" y="72" width="50" height="26" rx="4" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="212" y="89" fill="#22c55e" font-size="11" font-weight="500">All (4)</text>
+  <text x="264" y="89" fill="#888" font-size="11">Active (1)</text>
+  <text x="335" y="89" fill="#888" font-size="11">Queued (1)</text>
+  <text x="410" y="89" fill="#888" font-size="11">Pending (1)</text>
+  <text x="490" y="89" fill="#888" font-size="11">Completed (1)</text>
+
+  <!-- Table -->
+  <rect x="200" y="108" width="585" height="380" rx="8" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Table Header -->
+  <rect x="200" y="108" width="585" height="36" rx="8" fill="#1a1a1a"/>
+  <rect x="200" y="130" width="585" height="14" fill="#1a1a1a"/>
+  <line x1="200" y1="144" x2="785" y2="144" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="220" y="130" fill="#888" font-size="11" font-weight="600">TITLE</text>
+  <text x="380" y="130" fill="#888" font-size="11" font-weight="600">SOURCE</text>
+  <text x="510" y="130" fill="#888" font-size="11" font-weight="600">STATUS</text>
+  <text x="610" y="130" fill="#888" font-size="11" font-weight="600">PROGRESS</text>
+  <text x="730" y="130" fill="#888" font-size="11" font-weight="600">ACTIONS</text>
+
+  <!-- Row 1: Encoding -->
+  <rect x="201" y="145" width="583" height="56" fill="#171717"/>
+  <line x1="200" y1="201" x2="785" y2="201" stroke="#2e2e2e" stroke-width="0.5"/>
+  <text x="220" y="170" fill="white" font-size="12" font-weight="500">movie_2024.mkv</text>
+  <text x="220" y="186" fill="#666" font-size="10">x265 / RF 22 / medium</text>
+  <text x="380" y="178" fill="#ccc" font-size="11">/media/movies/</text>
+  <!-- Encoding badge -->
+  <rect x="510" y="163" width="68" height="22" rx="11" fill="#22c55e" fill-opacity="0.15"/>
+  <circle cx="522" cy="174" r="3" fill="#22c55e"/>
+  <text x="530" y="178" fill="#22c55e" font-size="10" font-weight="500">Encoding</text>
+  <!-- Progress bar -->
+  <rect x="610" y="170" width="80" height="6" rx="3" fill="#2e2e2e"/>
+  <rect x="610" y="170" width="52" height="6" rx="3" fill="url(#greenGrad)"/>
+  <text x="695" y="177" fill="#888" font-size="10">65%</text>
+  <!-- Actions -->
+  <rect x="732" y="165" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <rect x="740" y="172" width="2" height="8" rx="1" fill="#f59e0b"/>
+  <rect x="744" y="172" width="2" height="8" rx="1" fill="#f59e0b"/>
+  <rect x="758" y="165" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <text x="764" y="180" fill="#ef4444" font-size="12">&#128465;</text>
+
+  <!-- Row 2: Queued -->
+  <rect x="201" y="202" width="583" height="56" fill="#171717"/>
+  <line x1="200" y1="258" x2="785" y2="258" stroke="#2e2e2e" stroke-width="0.5"/>
+  <text x="220" y="227" fill="white" font-size="12" font-weight="500">series_s01e03.mkv</text>
+  <text x="220" y="243" fill="#666" font-size="10">x264 / RF 20 / slow</text>
+  <text x="380" y="235" fill="#ccc" font-size="11">/media/series/</text>
+  <!-- Queued badge -->
+  <rect x="510" y="220" width="58" height="22" rx="11" fill="#3b82f6" fill-opacity="0.15"/>
+  <circle cx="522" cy="231" r="3" fill="#3b82f6"/>
+  <text x="530" y="235" fill="#3b82f6" font-size="10" font-weight="500">Queued</text>
+  <!-- No progress -->
+  <rect x="610" y="228" width="80" height="6" rx="3" fill="#2e2e2e"/>
+  <text x="695" y="234" fill="#888" font-size="10">--</text>
+  <!-- Actions -->
+  <rect x="732" y="222" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <polygon points="740,228 740,238 748,233" fill="#22c55e"/>
+  <rect x="758" y="222" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <text x="764" y="237" fill="#ef4444" font-size="12">&#128465;</text>
+
+  <!-- Row 3: Pending -->
+  <rect x="201" y="259" width="583" height="56" fill="#171717"/>
+  <line x1="200" y1="315" x2="785" y2="315" stroke="#2e2e2e" stroke-width="0.5"/>
+  <text x="220" y="284" fill="white" font-size="12" font-weight="500">interview_raw.mp4</text>
+  <text x="220" y="300" fill="#666" font-size="10">x265 / RF 24 / fast</text>
+  <text x="380" y="292" fill="#ccc" font-size="11">/media/other/</text>
+  <!-- Pending badge -->
+  <rect x="510" y="277" width="62" height="22" rx="11" fill="#6b7280" fill-opacity="0.2"/>
+  <circle cx="522" cy="288" r="3" fill="#6b7280"/>
+  <text x="530" y="292" fill="#9ca3af" font-size="10" font-weight="500">Pending</text>
+  <!-- No progress -->
+  <rect x="610" y="285" width="80" height="6" rx="3" fill="#2e2e2e"/>
+  <text x="695" y="291" fill="#888" font-size="10">--</text>
+  <!-- Actions -->
+  <rect x="732" y="279" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <polygon points="740,285 740,295 748,290" fill="#22c55e"/>
+  <rect x="758" y="279" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <text x="764" y="294" fill="#ef4444" font-size="12">&#128465;</text>
+
+  <!-- Row 4: Completed -->
+  <rect x="201" y="316" width="583" height="56" fill="#171717"/>
+  <text x="220" y="341" fill="white" font-size="12" font-weight="500">vacation_edit.mp4</text>
+  <text x="220" y="357" fill="#666" font-size="10">x265 / RF 22 / medium</text>
+  <text x="380" y="349" fill="#ccc" font-size="11">/media/personal/</text>
+  <!-- Completed badge -->
+  <rect x="510" y="334" width="78" height="22" rx="11" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="522" y="349" fill="#22c55e" font-size="11">&#10003;</text>
+  <text x="534" y="349" fill="#22c55e" font-size="10" font-weight="500">Completed</text>
+  <!-- Full progress -->
+  <rect x="610" y="342" width="80" height="6" rx="3" fill="#22c55e" fill-opacity="0.3"/>
+  <rect x="610" y="342" width="80" height="6" rx="3" fill="url(#greenGrad)"/>
+  <text x="695" y="348" fill="#22c55e" font-size="10">100%</text>
+  <!-- Actions (only delete) -->
+  <rect x="758" y="336" width="22" height="22" rx="4" fill="#2e2e2e"/>
+  <text x="764" y="351" fill="#ef4444" font-size="12">&#128465;</text>
+
+  <!-- Table footer -->
+  <line x1="200" y1="440" x2="785" y2="440" stroke="#2e2e2e" stroke-width="0.5"/>
+  <text x="220" y="462" fill="#888" font-size="11">Showing 4 of 4 tasks</text>
+  <rect x="700" y="448" width="24" height="24" rx="4" fill="#2e2e2e"/>
+  <text x="708" y="464" fill="#888" font-size="11">&lt;</text>
+  <rect x="728" y="448" width="24" height="24" rx="4" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="737" y="464" fill="#22c55e" font-size="11">1</text>
+  <rect x="756" y="448" width="24" height="24" rx="4" fill="#2e2e2e"/>
+  <text x="764" y="464" fill="#888" font-size="11">&gt;</text>
+</svg>

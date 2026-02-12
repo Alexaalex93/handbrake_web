@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+    <linearGradient id="sliderTrack" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="50%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#121212"/>
+
+  <!-- Panel container -->
+  <rect x="40" y="20" width="720" height="460" rx="12" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Panel header -->
+  <text x="70" y="50" fill="white" font-size="18" font-weight="600">Encoding Options</text>
+  <text x="70" y="68" fill="#888" font-size="12">Configure video and audio encoding settings</text>
+
+  <!-- Tabs -->
+  <rect x="40" y="80" width="720" height="40" fill="#0d0d0d"/>
+  <!-- Video tab (active) -->
+  <rect x="60" y="86" width="70" height="28" rx="6" fill="#22c55e" fill-opacity="0.15"/>
+  <text x="78" y="105" fill="#22c55e" font-size="12" font-weight="600">Video</text>
+  <!-- Other tabs -->
+  <text x="152" y="105" fill="#888" font-size="12">Audio</text>
+  <text x="210" y="105" fill="#888" font-size="12">Subtitles</text>
+  <text x="286" y="105" fill="#888" font-size="12">Filters</text>
+  <text x="346" y="105" fill="#888" font-size="12">Picture</text>
+  <text x="416" y="105" fill="#888" font-size="12">Container</text>
+
+  <!-- Active tab indicator -->
+  <rect x="60" y="118" width="70" height="2" fill="#22c55e"/>
+
+  <!-- Video encoding form -->
+  <!-- Encoder -->
+  <text x="70" y="152" fill="white" font-size="13" font-weight="500">Video Encoder</text>
+  <text x="70" y="168" fill="#666" font-size="10">Select the codec for video encoding</text>
+  <rect x="70" y="176" width="300" height="38" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="84" y="199" fill="white" font-size="12">x265 (HEVC)</text>
+  <!-- Dropdown arrow -->
+  <polygon points="348,192 356,192 352,198" fill="#888"/>
+
+  <!-- Framerate -->
+  <text x="400" y="152" fill="white" font-size="13" font-weight="500">Framerate</text>
+  <text x="400" y="168" fill="#666" font-size="10">Output framerate control</text>
+  <rect x="400" y="176" width="200" height="38" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="414" y="199" fill="white" font-size="12">Same as Source</text>
+  <polygon points="578,192 586,192 582,198" fill="#888"/>
+
+  <!-- Peak framerate checkbox -->
+  <rect x="610" y="182" width="16" height="16" rx="3" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="614" y="194" fill="#22c55e" font-size="11">&#10003;</text>
+  <text x="632" y="195" fill="#ccc" font-size="11">Peak</text>
+
+  <!-- Quality section -->
+  <line x1="70" y1="230" x2="730" y2="230" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="70" y="255" fill="white" font-size="13" font-weight="500">Quality</text>
+  <text x="70" y="271" fill="#666" font-size="10">Lower RF = higher quality, larger file size</text>
+
+  <!-- Quality mode toggle -->
+  <rect x="400" y="244" width="120" height="28" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <rect x="400" y="244" width="60" height="28" rx="6" fill="#22c55e" fill-opacity="0.2"/>
+  <text x="414" y="262" fill="#22c55e" font-size="10" font-weight="500">Constant</text>
+  <text x="472" y="262" fill="#888" font-size="10">Average</text>
+
+  <!-- RF Slider -->
+  <text x="70" y="300" fill="#ccc" font-size="11">RF Value</text>
+  <rect x="70" y="310" width="400" height="8" rx="4" fill="#2e2e2e"/>
+  <rect x="70" y="310" width="180" height="8" rx="4" fill="url(#sliderTrack)"/>
+  <!-- Slider thumb -->
+  <circle cx="250" cy="314" r="10" fill="#22c55e" stroke="white" stroke-width="2"/>
+  <text x="248" y="318" text-anchor="middle" fill="white" font-size="7" font-weight="700">22</text>
+  <!-- Scale labels -->
+  <text x="70" y="338" fill="#22c55e" font-size="9">0 (Lossless)</text>
+  <text x="420" y="338" fill="#ef4444" font-size="9">51 (Worst)</text>
+
+  <!-- Current RF display -->
+  <rect x="500" y="296" width="80" height="38" rx="6" fill="#0d0d0d" stroke="#22c55e" stroke-width="1"/>
+  <text x="518" y="312" fill="#888" font-size="9">RF VALUE</text>
+  <text x="528" y="328" fill="#22c55e" font-size="16" font-weight="700">22</text>
+
+  <!-- Encoder Preset -->
+  <line x1="70" y1="356" x2="730" y2="356" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="70" y="382" fill="white" font-size="13" font-weight="500">Encoder Preset</text>
+  <text x="70" y="398" fill="#666" font-size="10">Slower = better compression, longer encode time</text>
+
+  <!-- Preset dropdown -->
+  <rect x="70" y="406" width="200" height="38" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="84" y="429" fill="white" font-size="12">medium</text>
+  <polygon points="248,422 256,422 252,428" fill="#888"/>
+
+  <!-- Preset speed indicator -->
+  <rect x="290" y="412" width="200" height="6" rx="3" fill="#2e2e2e"/>
+  <rect x="290" y="412" width="100" height="6" rx="3" fill="#f59e0b"/>
+  <text x="290" y="434" fill="#888" font-size="9">ultrafast</text>
+  <text x="460" y="434" fill="#888" font-size="9">veryslow</text>
+  <!-- Marker -->
+  <rect x="386" y="408" width="2" height="14" rx="1" fill="white"/>
+
+  <!-- Encoder Tune -->
+  <text x="520" y="382" fill="white" font-size="13" font-weight="500">Encoder Tune</text>
+  <rect x="520" y="406" width="200" height="38" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="534" y="429" fill="#888" font-size="12">None</text>
+  <polygon points="698,422 706,422 702,428" fill="#888"/>
+
+  <!-- Bottom options -->
+  <line x1="70" y1="452" x2="730" y2="452" stroke="#2e2e2e" stroke-width="1"/>
+  <!-- Multi-pass checkbox -->
+  <rect x="70" y="462" width="16" height="16" rx="3" fill="#0d0d0d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="74" y="474" fill="#22c55e" font-size="11">&#10003;</text>
+  <text x="94" y="475" fill="#ccc" font-size="12">Multi-pass Encoding</text>
+
+  <!-- Turbo first pass -->
+  <rect x="240" y="462" width="16" height="16" rx="3" fill="#0d0d0d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="244" y="474" fill="#22c55e" font-size="11">&#10003;</text>
+  <text x="264" y="475" fill="#ccc" font-size="12">Turbo First Pass</text>
+
+  <!-- Web optimized -->
+  <rect x="410" y="462" width="16" height="16" rx="3" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="434" y="475" fill="#ccc" font-size="12">Web Optimized</text>
+</svg>

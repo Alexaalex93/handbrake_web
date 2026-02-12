@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" width="800" height="500">
+  <defs>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="800" height="500" fill="#121212"/>
+
+  <!-- Sidebar -->
+  <rect width="180" height="500" fill="#0d0d0d"/>
+  <line x1="180" y1="0" x2="180" y2="500" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Logo -->
+  <rect x="16" y="16" width="148" height="40" rx="6" fill="#171717"/>
+  <circle cx="38" cy="36" r="12" fill="none" stroke="#22c55e" stroke-width="2"/>
+  <text x="36" y="40" text-anchor="middle" fill="#22c55e" font-size="12" font-weight="bold">H</text>
+  <text x="56" y="40" fill="white" font-size="13" font-weight="600">HandBrake</text>
+
+  <!-- Nav: Dashboard -->
+  <rect x="22" y="86" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="31" y="86" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="22" y="95" width="7" height="7" rx="1" fill="#888"/>
+  <rect x="31" y="95" width="7" height="7" rx="1" fill="#888"/>
+  <text x="46" y="99" fill="#999" font-size="13">Dashboard</text>
+
+  <!-- Nav: Queue -->
+  <rect x="22" y="122" width="16" height="2" rx="1" fill="#888"/>
+  <rect x="22" y="127" width="16" height="2" rx="1" fill="#888"/>
+  <rect x="22" y="132" width="16" height="2" rx="1" fill="#888"/>
+  <text x="46" y="133" fill="#999" font-size="13">Queue</text>
+
+  <!-- Nav: Presets -->
+  <rect x="24" y="157" width="12" height="14" rx="2" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="169" fill="#999" font-size="13">Presets</text>
+
+  <!-- Nav: Watchers - Active -->
+  <rect x="8" y="180" width="164" height="36" rx="6" fill="#22c55e" fill-opacity="0.15"/>
+  <rect x="8" y="180" width="3" height="36" rx="1.5" fill="#22c55e"/>
+  <circle cx="30" cy="198" r="7" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <circle cx="30" cy="198" r="2.5" fill="#22c55e"/>
+  <text x="46" y="202" fill="#22c55e" font-size="13" font-weight="500">Watchers</text>
+
+  <!-- Nav: History -->
+  <circle cx="30" cy="232" r="7" fill="none" stroke="#888" stroke-width="1.5"/>
+  <polyline points="30,227 30,232 34,234" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="236" fill="#999" font-size="13">History</text>
+
+  <!-- Nav: Settings -->
+  <circle cx="30" cy="264" r="7" fill="none" stroke="#888" stroke-width="1.5"/>
+  <circle cx="30" cy="264" r="2.5" fill="none" stroke="#888" stroke-width="1.5"/>
+  <text x="46" y="268" fill="#999" font-size="13">Settings</text>
+
+  <!-- Main Content -->
+  <text x="200" y="40" fill="white" font-size="20" font-weight="600">Watchers</text>
+  <text x="200" y="58" fill="#888" font-size="12">Automatically detect and encode new files</text>
+
+  <!-- Add Watcher Button -->
+  <rect x="650" y="22" width="130" height="34" rx="6" fill="#22c55e"/>
+  <text x="672" y="43" fill="white" font-size="13" font-weight="600">+ Add Watcher</text>
+
+  <!-- Stats bar -->
+  <rect x="200" y="72" width="585" height="36" rx="6" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+  <circle cx="218" cy="90" r="5" fill="#22c55e"/>
+  <text x="230" y="94" fill="#ccc" font-size="11">2 Active</text>
+  <line x1="290" y1="78" x2="290" y2="102" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="302" y="94" fill="#888" font-size="11">12 files detected today</text>
+  <line x1="440" y1="78" x2="440" y2="102" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="452" y="94" fill="#888" font-size="11">8 auto-encoded</text>
+
+  <!-- Watcher Card 1 -->
+  <rect x="200" y="120" width="585" height="170" rx="8" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Card header -->
+  <rect x="200" y="120" width="585" height="44" rx="8" fill="#1a1a1a"/>
+  <rect x="200" y="156" width="585" height="8" fill="#1a1a1a"/>
+  <!-- Folder icon -->
+  <rect x="216" y="134" width="16" height="12" rx="2" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="216" y="131" width="8" height="4" rx="1" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="240" y="147" fill="white" font-size="13" font-weight="600">/media/movies</text>
+  <!-- Enabled toggle -->
+  <rect x="710" y="133" width="36" height="20" rx="10" fill="#22c55e"/>
+  <circle cx="732" cy="143" r="7" fill="white"/>
+  <text x="660" y="147" fill="#22c55e" font-size="11">Enabled</text>
+
+  <!-- Card body - row 1 -->
+  <text x="216" y="185" fill="#888" font-size="11">Scan Interval</text>
+  <rect x="216" y="192" width="120" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="230" y="211" fill="white" font-size="12">60 minutes</text>
+
+  <text x="352" y="185" fill="#888" font-size="11">Last Scan</text>
+  <rect x="352" y="192" width="120" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="366" y="211" fill="#22c55e" font-size="12">2 min ago</text>
+
+  <text x="488" y="185" fill="#888" font-size="11">Files Found</text>
+  <rect x="488" y="192" width="80" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="502" y="211" fill="white" font-size="12">24</text>
+
+  <!-- Scan Now button -->
+  <rect x="660" y="192" width="100" height="30" rx="6" fill="#2e2e2e" stroke="#3e3e3e" stroke-width="1"/>
+  <text x="683" y="211" fill="#ccc" font-size="11" font-weight="500">Scan Now</text>
+
+  <!-- Card body - row 2 -->
+  <text x="216" y="245" fill="#888" font-size="11">Preset</text>
+  <rect x="216" y="252" width="150" height="26" rx="4" fill="#22c55e" fill-opacity="0.1" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="230" y="269" fill="#22c55e" font-size="11">x265 Quality 1080p</text>
+
+  <text x="385" y="245" fill="#888" font-size="11">File Types</text>
+  <rect x="385" y="252" width="36" height="22" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="392" y="267" fill="#3b82f6" font-size="9">.mkv</text>
+  <rect x="425" y="252" width="36" height="22" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="432" y="267" fill="#3b82f6" font-size="9">.mp4</text>
+  <rect x="465" y="252" width="36" height="22" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="472" y="267" fill="#3b82f6" font-size="9">.avi</text>
+
+  <!-- Recursive disabled -->
+  <rect x="540" y="252" width="14" height="14" rx="3" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="560" y="264" fill="#888" font-size="11">Recursive</text>
+
+  <!-- Watcher Card 2 -->
+  <rect x="200" y="302" width="585" height="170" rx="8" fill="#171717" stroke="#2e2e2e" stroke-width="1"/>
+
+  <!-- Card header -->
+  <rect x="200" y="302" width="585" height="44" rx="8" fill="#1a1a1a"/>
+  <rect x="200" y="338" width="585" height="8" fill="#1a1a1a"/>
+  <rect x="216" y="316" width="16" height="12" rx="2" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="216" y="313" width="8" height="4" rx="1" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="240" y="329" fill="white" font-size="13" font-weight="600">/media/series</text>
+  <!-- Enabled toggle -->
+  <rect x="710" y="315" width="36" height="20" rx="10" fill="#22c55e"/>
+  <circle cx="732" cy="325" r="7" fill="white"/>
+  <text x="660" y="329" fill="#22c55e" font-size="11">Enabled</text>
+
+  <!-- Card body - row 1 -->
+  <text x="216" y="367" fill="#888" font-size="11">Scan Interval</text>
+  <rect x="216" y="374" width="120" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="230" y="393" fill="white" font-size="12">30 minutes</text>
+
+  <text x="352" y="367" fill="#888" font-size="11">Last Scan</text>
+  <rect x="352" y="374" width="120" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="366" y="393" fill="#22c55e" font-size="12">15 min ago</text>
+
+  <text x="488" y="367" fill="#888" font-size="11">Files Found</text>
+  <rect x="488" y="374" width="80" height="30" rx="6" fill="#0d0d0d" stroke="#2e2e2e" stroke-width="1"/>
+  <text x="502" y="393" fill="white" font-size="12">87</text>
+
+  <!-- Scan Now button -->
+  <rect x="660" y="374" width="100" height="30" rx="6" fill="#2e2e2e" stroke="#3e3e3e" stroke-width="1"/>
+  <text x="683" y="393" fill="#ccc" font-size="11" font-weight="500">Scan Now</text>
+
+  <!-- Card body - row 2 -->
+  <text x="216" y="427" fill="#888" font-size="11">Preset</text>
+  <rect x="216" y="434" width="130" height="26" rx="4" fill="#22c55e" fill-opacity="0.1" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="230" y="451" fill="#22c55e" font-size="11">x265 Quality</text>
+
+  <text x="385" y="427" fill="#888" font-size="11">File Types</text>
+  <rect x="385" y="434" width="36" height="22" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="392" y="449" fill="#3b82f6" font-size="9">.mkv</text>
+  <rect x="425" y="434" width="36" height="22" rx="4" fill="#3b82f6" fill-opacity="0.15"/>
+  <text x="432" y="449" fill="#3b82f6" font-size="9">.mp4</text>
+
+  <!-- Recursive enabled -->
+  <rect x="500" y="434" width="14" height="14" rx="3" fill="#0d0d0d" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="504" y="445" fill="#22c55e" font-size="9">&#10003;</text>
+  <text x="520" y="449" fill="#ccc" font-size="11">Recursive</text>
+</svg>
