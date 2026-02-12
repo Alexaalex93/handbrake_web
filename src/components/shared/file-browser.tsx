@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Loader2,
   ArrowUp,
+  HardDrive,
 } from "lucide-react"
 
 interface FileEntry {
@@ -24,6 +25,53 @@ interface FileBrowserProps {
   directoryOnly?: boolean
 }
 
+// Check if a path looks like a Windows drive root (e.g. "C:\")
+function isDriveRoot(p: string): boolean {
+  return /^[A-Za-z]:[/\\]?$/.test(p)
+}
+
+// Get parent of a path, handling both Unix and Windows
+function getParentPath(p: string): string {
+  // If at root "/" or a drive root "C:\", go to drive list
+  if (p === "/" || p === "\\" || isDriveRoot(p)) {
+    return "/"
+  }
+  // Normalize to forward slashes for splitting
+  const normalized = p.replace(/\\/g, "/").replace(/\/+$/, "")
+  const parts = normalized.split("/").filter(Boolean)
+  if (parts.length <= 1) {
+    // e.g. "C:" → go to root (drive list)
+    return "/"
+  }
+  parts.pop()
+  const parent = parts.join("/")
+  // If parent is just "C:", make it "C:/"
+  if (/^[A-Za-z]:$/.test(parent)) {
+    return parent + "/"
+  }
+  // If it started with "/" (Unix), keep the leading /
+  if (normalized.startsWith("/")) {
+    return "/" + parent
+  }
+  return parent
+}
+
+// Split a path into breadcrumb parts
+function getBreadcrumbs(p: string): { label: string; path: string }[] {
+  if (p === "/" || p === "\\") return []
+  const normalized = p.replace(/\\/g, "/").replace(/\/+$/, "")
+  const parts = normalized.split("/").filter(Boolean)
+  const crumbs: { label: string; path: string }[] = []
+  for (let i = 0; i < parts.length; i++) {
+    const segment = parts.slice(0, i + 1).join("/")
+    // For Windows drive like "C:", make path "C:/"
+    const crumbPath = /^[A-Za-z]:$/.test(segment) ? segment + "/" :
+      (normalized.startsWith("/") ? "/" + segment : segment)
+    crumbs.push({ label: parts[i], path: crumbPath })
+  }
+  return crumbs
+}
+
 export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState("/")
   const [entries, setEntries] = useState<FileEntry[]>([])
@@ -35,11 +83,11 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
     loadDirectory(currentPath)
   }, [currentPath])
 
-  const loadDirectory = async (path: string) => {
+  const loadDirectory = async (dirPath: string) => {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`/api/files?path=${encodeURIComponent(path)}`)
+      const res = await fetch(`/api/files?path=${encodeURIComponent(dirPath)}`)
       const data = await res.json()
       if (!res.ok) {
         setError(data.error || "Failed to load directory")
@@ -49,7 +97,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
       } else {
         setEntries([])
       }
-      setPathInput(path)
+      setPathInput(dirPath)
     } catch {
       setError("Failed to load directory")
       setEntries([])
@@ -58,12 +106,11 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
     }
   }
 
-  const breadcrumbs = currentPath.split("/").filter(Boolean)
+  const isAtRoot = currentPath === "/" || currentPath === "\\"
+  const breadcrumbs = getBreadcrumbs(currentPath)
 
   const goUp = () => {
-    const parts = currentPath.split("/").filter(Boolean)
-    parts.pop()
-    setCurrentPath("/" + parts.join("/"))
+    setCurrentPath(getParentPath(currentPath))
   }
 
   const handlePathSubmit = (e: React.FormEvent) => {
@@ -72,6 +119,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
   }
 
   const isDir = (entry: FileEntry) => entry.type === "directory"
+  const isDrive = (entry: FileEntry) => isDriveRoot(entry.path)
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
@@ -96,7 +144,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
             value={pathInput}
             onChange={(e) => setPathInput(e.target.value)}
             className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
-            placeholder="Type path..."
+            placeholder="Type path... (e.g. C:\Users or /home)"
           />
         </form>
 
@@ -104,33 +152,36 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
         <div className="flex items-center gap-1 border-b border-[hsl(var(--border))] px-4 py-2 text-xs">
           <button
             onClick={goUp}
-            className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]"
+            disabled={isAtRoot}
+            className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-30"
           >
             <ArrowUp className="h-3 w-3" />
           </button>
           <button
             onClick={() => setCurrentPath("/")}
-            className="text-[hsl(var(--primary))] hover:underline"
+            className={`hover:underline ${isAtRoot ? "text-[hsl(var(--card-foreground))] font-semibold" : "text-[hsl(var(--primary))]"}`}
           >
-            /
+            {isAtRoot ? "Drives" : "/"}
           </button>
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1">
               <ChevronRight className="h-3 w-3 text-[hsl(var(--muted-foreground))]" />
               <button
-                onClick={() =>
-                  setCurrentPath("/" + breadcrumbs.slice(0, i + 1).join("/"))
-                }
-                className="text-[hsl(var(--primary))] hover:underline"
+                onClick={() => setCurrentPath(crumb.path)}
+                className={`hover:underline ${
+                  i === breadcrumbs.length - 1
+                    ? "text-[hsl(var(--card-foreground))] font-semibold"
+                    : "text-[hsl(var(--primary))]"
+                }`}
               >
-                {crumb}
+                {crumb.label}
               </button>
             </span>
           ))}
         </div>
 
         {/* File list */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-[200px] flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
@@ -166,7 +217,9 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
                       : ""
                   }`}
                 >
-                  {isDir(entry) ? (
+                  {isDrive(entry) ? (
+                    <HardDrive className="h-4 w-4 shrink-0 text-blue-400" />
+                  ) : isDir(entry) ? (
                     <Folder className="h-4 w-4 shrink-0 text-yellow-500" />
                   ) : (
                     <File className="h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))]" />
@@ -190,7 +243,8 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
           <div className="flex justify-end border-t border-[hsl(var(--border))] px-4 py-3">
             <button
               onClick={() => onSelect(currentPath)}
-              className="rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90"
+              disabled={isAtRoot}
+              className="rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
             >
               Select This Directory
             </button>
