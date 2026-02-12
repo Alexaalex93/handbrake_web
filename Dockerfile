@@ -1,26 +1,9 @@
 # ============================================================
-# HandBrake Web - Multi-stage Docker build
+# HandBrake Web - Docker build
 # Supports: CPU encoding + NVIDIA NVENC GPU acceleration
 # ============================================================
 
-# --- Build stage: compile Next.js app ---
-FROM node:20-slim AS builder
-
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    python3 make g++ && \
-    rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-COPY package.json package-lock.json* ./
-RUN npm ci
-
-COPY . .
-RUN npm run build
-
-# --- Production stage: runtime with HandBrakeCLI + NVENC ---
-FROM ubuntu:24.04 AS runner
+FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV NODE_ENV=production
@@ -34,8 +17,13 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends nodejs && \
     rm -rf /var/lib/apt/lists/*
 
-# Install HandBrakeCLI with full codec support
-# Using the official HandBrake PPA for latest version with NVENC support
+# Install build tools for native modules (better-sqlite3)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    python3 make g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install HandBrakeCLI
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     software-properties-common && \
@@ -49,22 +37,29 @@ RUN apt-get update && \
 
 WORKDIR /app
 
+# Install dependencies (including dev for build)
+COPY package.json package-lock.json* ./
+RUN npm ci
+
+# Copy source and build
+COPY . .
+RUN npm run build
+
+# Remove dev dependencies after build
+RUN npm prune --omit=dev
+
+# Clean up build tools to reduce image size
+RUN apt-get purge -y python3 make g++ && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /root/.npm
+
 # Create non-root user
 RUN groupadd --system --gid 1001 nodejs && \
     useradd --system --uid 1001 --gid nodejs nextjs
 
-# Copy built app from builder stage
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-COPY --from=builder /app/node_modules/better-sqlite3 ./node_modules/better-sqlite3
-
-# Create data directory for SQLite
-RUN mkdir -p /app/data && chown nextjs:nodejs /app/data
-
-# Create default media directories
-RUN mkdir -p /input /output && \
-    chown nextjs:nodejs /input /output
+# Create directories
+RUN mkdir -p /app/data /input /output && \
+    chown -R nextjs:nodejs /app/data /input /output /app/.next
 
 USER nextjs
 
@@ -76,4 +71,4 @@ ENV HOSTNAME="0.0.0.0"
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:3000/api/system || exit 1
 
-CMD ["node", "server.js"]
+CMD ["npx", "next", "start", "-H", "0.0.0.0"]
