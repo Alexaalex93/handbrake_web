@@ -35,7 +35,7 @@ export default function TaskDetailPage() {
   const [activeTab, setActiveTab] = useState("video")
   const [saving, setSaving] = useState(false)
 
-  const { data, isLoading, mutate } = useSWR<{ task: Task }>(
+  const { data, isLoading, mutate } = useSWR<Task>(
     `/api/tasks/${id}`,
     fetcher,
     { refreshInterval: 3000 }
@@ -44,7 +44,7 @@ export default function TaskDetailPage() {
   const { subscribe } = useSSE()
   subscribe("progress", () => mutate())
 
-  const task = data?.task
+  const task = data
   const [options, setOptions] = useState<EncodingOptions | null>(null)
 
   // Sync options from server on first load

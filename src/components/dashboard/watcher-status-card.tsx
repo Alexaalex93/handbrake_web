@@ -8,13 +8,13 @@ import type { WatchedFolder } from "@/types/watcher"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function WatcherStatusCard() {
-  const { data, isLoading } = useSWR<{ watchers: WatchedFolder[] }>(
+  const { data, isLoading } = useSWR<WatchedFolder[]>(
     "/api/watchers",
     fetcher,
     { refreshInterval: 30000 }
   )
 
-  const watchers = data?.watchers ?? []
+  const watchers = data ?? []
 
   return (
     <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">

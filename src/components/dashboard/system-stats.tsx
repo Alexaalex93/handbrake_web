@@ -6,11 +6,17 @@ import { Cpu, Loader2 } from "lucide-react"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 interface SystemInfo {
-  cpuUsage: number
-  memoryUsed: number
-  memoryTotal: number
-  diskUsed: number
-  diskTotal: number
+  cpu: number
+  memory: {
+    used: number
+    total: number
+  }
+  disk: {
+    used: number
+    total: number
+  }
+  platform: string
+  hostname: string
   handbrakeVersion: string
 }
 
@@ -58,17 +64,17 @@ export function SystemStatsCard() {
         </div>
       ) : (
         <div className="space-y-4">
-          <UsageBar label="CPU" value={data?.cpuUsage ?? 0} max={100} />
+          <UsageBar label="CPU" value={data?.cpu ?? 0} max={100} />
           <UsageBar
             label="Memory"
-            value={data?.memoryUsed ?? 0}
-            max={data?.memoryTotal ?? 1}
+            value={data?.memory?.used ?? 0}
+            max={data?.memory?.total ?? 1}
             unit="GB"
           />
           <UsageBar
             label="Disk"
-            value={data?.diskUsed ?? 0}
-            max={data?.diskTotal ?? 1}
+            value={data?.disk?.used ?? 0}
+            max={data?.disk?.total ?? 1}
             unit="GB"
           />
 

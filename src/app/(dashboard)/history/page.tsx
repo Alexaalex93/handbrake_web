@@ -52,11 +52,11 @@ export default function HistoryPage() {
   }
 
   const { data, isLoading, mutate } = useSWR<{
-    history: TaskHistory[]
+    items: TaskHistory[]
     total: number
   }>(`/api/history?${queryParams.toString()}`, fetcher)
 
-  const items = data?.history ?? []
+  const items = data?.items ?? []
   const total = data?.total ?? 0
   const totalPages = Math.ceil(total / limit)
 

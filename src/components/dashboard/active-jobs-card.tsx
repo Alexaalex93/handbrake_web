@@ -8,7 +8,7 @@ import type { Task } from "@/types/task"
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function ActiveJobsCard() {
-  const { data, isLoading, mutate } = useSWR<{ tasks: Task[] }>(
+  const { data, isLoading, mutate } = useSWR<Task[]>(
     "/api/tasks?status=encoding",
     fetcher,
     { refreshInterval: 10000 }
@@ -20,7 +20,7 @@ export function ActiveJobsCard() {
     mutate()
   })
 
-  const tasks = data?.tasks ?? []
+  const tasks = data ?? []
 
   return (
     <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">

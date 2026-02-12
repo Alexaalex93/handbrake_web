@@ -14,13 +14,13 @@ const statusConfig = {
 }
 
 export function RecentHistoryCard() {
-  const { data, isLoading } = useSWR<{ history: TaskHistory[] }>(
+  const { data, isLoading } = useSWR<{ items: TaskHistory[], total: number, page: number, limit: number, totalPages: number }>(
     "/api/history?limit=5",
     fetcher,
     { refreshInterval: 15000 }
   )
 
-  const items = data?.history ?? []
+  const items = data?.items ?? []
 
   return (
     <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">

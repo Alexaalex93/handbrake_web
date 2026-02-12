@@ -13,8 +13,9 @@ import {
 interface FileEntry {
   name: string
   path: string
-  isDirectory: boolean
+  type: "file" | "directory"
   size?: number
+  modified?: string
 }
 
 interface FileBrowserProps {
@@ -27,6 +28,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
   const [currentPath, setCurrentPath] = useState("/")
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
   const [pathInput, setPathInput] = useState("/")
 
   useEffect(() => {
@@ -35,12 +37,21 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
 
   const loadDirectory = async (path: string) => {
     setLoading(true)
+    setError("")
     try {
       const res = await fetch(`/api/files?path=${encodeURIComponent(path)}`)
       const data = await res.json()
-      setEntries(data.entries ?? [])
+      if (!res.ok) {
+        setError(data.error || "Failed to load directory")
+        setEntries([])
+      } else if (Array.isArray(data)) {
+        setEntries(data)
+      } else {
+        setEntries([])
+      }
       setPathInput(path)
     } catch {
+      setError("Failed to load directory")
       setEntries([])
     } finally {
       setLoading(false)
@@ -59,6 +70,8 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
     e.preventDefault()
     setCurrentPath(pathInput)
   }
+
+  const isDir = (entry: FileEntry) => entry.type === "directory"
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
@@ -122,57 +135,52 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
             </div>
+          ) : error ? (
+            <p className="py-8 text-center text-sm text-[hsl(var(--destructive))]">
+              {error}
+            </p>
           ) : entries.length === 0 ? (
             <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
               Empty directory
             </p>
           ) : (
             <div className="divide-y divide-[hsl(var(--border))]">
-              {entries
-                .sort((a, b) => {
-                  if (a.isDirectory && !b.isDirectory) return -1
-                  if (!a.isDirectory && b.isDirectory) return 1
-                  return a.name.localeCompare(b.name)
-                })
-                .map((entry) => (
-                  <button
-                    key={entry.path}
-                    onClick={() => {
-                      if (entry.isDirectory) {
-                        if (directoryOnly) {
-                          // allow selecting but also navigating
-                        }
-                        setCurrentPath(entry.path)
-                      } else if (!directoryOnly) {
-                        onSelect(entry.path)
-                      }
-                    }}
-                    onDoubleClick={() => {
-                      if (entry.isDirectory && directoryOnly) {
-                        onSelect(entry.path)
-                      }
-                    }}
-                    className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-[hsl(var(--accent))] ${
-                      !entry.isDirectory && directoryOnly
-                        ? "opacity-50 cursor-default"
-                        : ""
-                    }`}
-                  >
-                    {entry.isDirectory ? (
-                      <Folder className="h-4 w-4 shrink-0 text-[hsl(var(--info))]" />
-                    ) : (
-                      <File className="h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))]" />
-                    )}
-                    <span className="flex-1 truncate text-[hsl(var(--card-foreground))]">
-                      {entry.name}
+              {entries.map((entry) => (
+                <button
+                  key={entry.path}
+                  onClick={() => {
+                    if (isDir(entry)) {
+                      setCurrentPath(entry.path)
+                    } else if (!directoryOnly) {
+                      onSelect(entry.path)
+                    }
+                  }}
+                  onDoubleClick={() => {
+                    if (isDir(entry) && directoryOnly) {
+                      onSelect(entry.path)
+                    }
+                  }}
+                  className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-[hsl(var(--accent))] ${
+                    !isDir(entry) && directoryOnly
+                      ? "opacity-50 cursor-default"
+                      : ""
+                  }`}
+                >
+                  {isDir(entry) ? (
+                    <Folder className="h-4 w-4 shrink-0 text-yellow-500" />
+                  ) : (
+                    <File className="h-4 w-4 shrink-0 text-[hsl(var(--muted-foreground))]" />
+                  )}
+                  <span className="flex-1 truncate text-[hsl(var(--card-foreground))]">
+                    {entry.name}
+                  </span>
+                  {entry.size != null && !isDir(entry) && (
+                    <span className="shrink-0 text-xs text-[hsl(var(--muted-foreground))]">
+                      {(entry.size / 1024 / 1024).toFixed(1)} MB
                     </span>
-                    {entry.size != null && !entry.isDirectory && (
-                      <span className="shrink-0 text-xs text-[hsl(var(--muted-foreground))]">
-                        {(entry.size / 1024 / 1024).toFixed(1)} MB
-                      </span>
-                    )}
-                  </button>
-                ))}
+                  )}
+                </button>
+              ))}
             </div>
           )}
         </div>

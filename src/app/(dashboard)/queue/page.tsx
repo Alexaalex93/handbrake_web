@@ -11,13 +11,13 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export default function QueuePage() {
   const [showCreate, setShowCreate] = useState(false)
-  const { data, isLoading, mutate } = useSWR<{ tasks: Task[] }>(
+  const { data, isLoading, mutate } = useSWR<Task[]>(
     "/api/tasks",
     fetcher,
     { refreshInterval: 5000 }
   )
 
-  const tasks = data?.tasks ?? []
+  const tasks = Array.isArray(data) ? data : []
 
   return (
     <div className="space-y-6">
