@@ -54,7 +54,10 @@ export default function HistoryPage() {
   const { data, isLoading, mutate } = useSWR<{
     items: TaskHistory[]
     total: number
-  }>(`/api/history?${queryParams.toString()}`, fetcher)
+  }>(`/api/history?${queryParams.toString()}`, fetcher, {
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  })
 
   const items = data?.items ?? []
   const total = data?.total ?? 0

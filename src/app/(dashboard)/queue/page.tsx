@@ -14,7 +14,11 @@ export default function QueuePage() {
   const { data, isLoading, mutate } = useSWR<Task[]>(
     "/api/tasks",
     fetcher,
-    { refreshInterval: 5000 }
+    {
+      refreshInterval: showCreate ? 0 : 5000,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
   )
 
   const tasks = Array.isArray(data) ? data : []

@@ -79,8 +79,8 @@ function PresetDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="mx-4 flex h-[85vh] w-full max-w-3xl flex-col rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="mx-4 flex h-[85vh] w-full max-w-3xl flex-col rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-6 py-4">
           <h2 className="text-lg font-semibold text-[hsl(var(--card-foreground))]">
             {preset ? "Edit Preset" : "New Preset"}
@@ -180,7 +180,11 @@ function PresetDialog({
 export default function PresetsPage() {
   const { data, isLoading, mutate } = useSWR<Preset[]>(
     "/api/presets",
-    fetcher
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
   )
   const [deleting, setDeleting] = useState<number | null>(null)
   const [showDialog, setShowDialog] = useState(false)
