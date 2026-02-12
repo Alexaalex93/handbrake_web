@@ -104,6 +104,45 @@ export function initializeSchema(db: Database.Database) {
       value         TEXT NOT NULL,
       updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS libraries (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      name          TEXT NOT NULL UNIQUE,
+      path          TEXT NOT NULL,
+      recursive     INTEGER NOT NULL DEFAULT 1,
+      file_extensions TEXT NOT NULL DEFAULT '.mkv,.mp4,.avi,.mov,.wmv,.flv,.ts,.m4v,.webm',
+      auto_scan     INTEGER NOT NULL DEFAULT 0,
+      scan_interval INTEGER NOT NULL DEFAULT 3600,
+      last_scan_at  TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS library_items (
+      id            INTEGER PRIMARY KEY AUTOINCREMENT,
+      library_id    INTEGER NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
+      file_path     TEXT NOT NULL,
+      file_name     TEXT NOT NULL,
+      file_size     INTEGER NOT NULL DEFAULT 0,
+      file_mtime    TEXT,
+      duration      REAL,
+      width         INTEGER,
+      height        INTEGER,
+      video_codec   TEXT,
+      video_bitrate INTEGER,
+      audio_codec   TEXT,
+      audio_channels INTEGER,
+      audio_bitrate INTEGER,
+      subtitle_count INTEGER DEFAULT 0,
+      container     TEXT,
+      scan_status   TEXT NOT NULL DEFAULT 'pending',
+      scan_error    TEXT,
+      created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(library_id, file_path)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_library_items_library ON library_items(library_id);
+    CREATE INDEX IF NOT EXISTS idx_library_items_codec ON library_items(video_codec);
   `)
 
   // Seed default settings

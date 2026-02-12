@@ -8,6 +8,7 @@ import {
   ListOrdered,
   Sliders,
   FolderSearch,
+  Library,
   Clock,
   Settings,
   X,
@@ -15,6 +16,7 @@ import {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/libraries", label: "Libraries", icon: Library },
   { href: "/queue", label: "Queue", icon: ListOrdered },
   { href: "/presets", label: "Presets", icon: Sliders },
   { href: "/watchers", label: "Watchers", icon: FolderSearch },

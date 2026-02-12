@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import useSWR from "swr"
 import { Plus, Loader2 } from "lucide-react"
 import { TaskList } from "@/components/queue/task-list"
@@ -11,17 +11,34 @@ const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export default function QueuePage() {
   const [showCreate, setShowCreate] = useState(false)
+  const showCreateRef = useRef(false)
+
+  // Keep ref in sync so the SWR config callback reads the latest value
+  showCreateRef.current = showCreate
+
   const { data, isLoading, mutate } = useSWR<Task[]>(
     "/api/tasks",
     fetcher,
     {
-      refreshInterval: showCreate ? 0 : 5000,
+      refreshInterval: (latestData) => {
+        // Stop polling entirely when dialog is open
+        return showCreateRef.current ? 0 : 5000
+      },
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
     }
   )
 
   const tasks = Array.isArray(data) ? data : []
+
+  const handleClose = useCallback(() => {
+    setShowCreate(false)
+  }, [])
+
+  const handleCreated = useCallback(() => {
+    setShowCreate(false)
+    mutate()
+  }, [mutate])
 
   return (
     <div className="space-y-6">
@@ -52,11 +69,8 @@ export default function QueuePage() {
 
       {showCreate && (
         <CreateTaskDialog
-          onClose={() => setShowCreate(false)}
-          onCreated={() => {
-            setShowCreate(false)
-            mutate()
-          }}
+          onClose={handleClose}
+          onCreated={handleCreated}
         />
       )}
     </div>
