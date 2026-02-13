@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/db"
+import { resetProbeCache } from "@/lib/media-probe"
 
 export async function GET() {
   try {
@@ -45,6 +46,11 @@ export async function PUT(request: NextRequest) {
     })
 
     updateMany(Object.entries(body))
+
+    // Reset probe cache if tool paths changed
+    if ("handbrake_path" in body || "ffprobe_path" in body) {
+      resetProbeCache()
+    }
 
     // Return updated settings
     const rows = db.prepare("SELECT key, value FROM settings").all() as { key: string; value: string }[]

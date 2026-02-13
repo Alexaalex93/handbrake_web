@@ -152,6 +152,7 @@ export function initializeSchema(db: Database.Database) {
   const defaults: Record<string, string> = {
     concurrent_limit: "1",
     handbrake_path: "HandBrakeCLI",
+    ffprobe_path: "ffprobe",
     default_output_dir: "/output",
     default_output_pattern: "{name}_encoded.{ext}",
     auto_start_queue: "true",

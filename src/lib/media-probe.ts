@@ -20,11 +20,32 @@ export interface MediaInfo {
 let _ffprobePath: string | null | undefined = undefined // undefined = not checked yet
 let _handBrakePath: string | null | undefined = undefined
 
-/** Find ffprobe binary, checking common install locations on Windows */
+/** Reset cached paths (call when settings change) */
+export function resetProbeCache() {
+  _ffprobePath = undefined
+  _handBrakePath = undefined
+}
+
+/** Find ffprobe binary: check DB setting, PATH, then common install locations */
 function findFfprobe(): string | null {
   if (_ffprobePath !== undefined) return _ffprobePath
 
-  // Try PATH first
+  // Check DB setting first
+  try {
+    const { getDb } = require("@/lib/db")
+    const db = getDb()
+    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get("ffprobe_path") as { value: string } | undefined
+    if (row?.value && row.value !== "ffprobe") {
+      // User specified a custom path
+      execSync(`"${row.value}" -version`, { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+      _ffprobePath = row.value
+      return _ffprobePath
+    }
+  } catch {
+    // DB not available or custom path failed
+  }
+
+  // Try PATH
   try {
     execSync("ffprobe -version", { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
     _ffprobePath = "ffprobe"

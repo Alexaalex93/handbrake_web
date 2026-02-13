@@ -25,10 +25,12 @@ export default function SettingsPage() {
     handbrakeVersion: string
     platform: string
     hostname: string
+    tools: { ffprobe: boolean; handbrake: boolean }
   }>("/api/system", fetcher)
 
   const [settings, setSettings] = useState({
     handbrake_path: "HandBrakeCLI",
+    ffprobe_path: "ffprobe",
     concurrent_limit: "1",
     auto_start_queue: "true",
     default_output_dir: "/output",
@@ -148,6 +150,24 @@ export default function SettingsPage() {
               placeholder="/usr/bin/HandBrakeCLI"
               className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+              ffprobe Path
+            </label>
+            <input
+              type="text"
+              value={settings.ffprobe_path}
+              onChange={(e) =>
+                setSettings({ ...settings, ffprobe_path: e.target.value })
+              }
+              placeholder="ffprobe or C:\ffmpeg\bin\ffprobe.exe"
+              className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+            />
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+              Used to analyze media files in Libraries. Install ffmpeg to get ffprobe.
+            </p>
           </div>
 
           <div>
@@ -375,6 +395,35 @@ export default function SettingsPage() {
                 data/handbrake.db
               </span>
             </div>
+            {systemData.tools && (
+              <>
+                <div className="border-t border-[hsl(var(--border))] pt-3 mt-3">
+                  <p className="mb-2 text-xs font-medium uppercase text-[hsl(var(--muted-foreground))]">Tools</p>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">HandBrakeCLI</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    systemData.tools.handbrake
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${systemData.tools.handbrake ? "bg-green-400" : "bg-red-400"}`} />
+                    {systemData.tools.handbrake ? "Available" : "Not found"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">ffprobe</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    systemData.tools.ffprobe
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}>
+                    <span className={`h-1.5 w-1.5 rounded-full ${systemData.tools.ffprobe ? "bg-green-400" : "bg-red-400"}`} />
+                    {systemData.tools.ffprobe ? "Available" : "Not found"}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <p className="text-sm text-[hsl(var(--muted-foreground))]">Loading system info...</p>

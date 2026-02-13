@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server"
 import { getSystemStats, getDiskStats, getHandBrakeVersion } from "@/lib/system"
+import { getProbeStatus } from "@/lib/media-probe"
 
 export async function GET() {
   try {
     const system = getSystemStats()
     const disk = getDiskStats()
     const handbrakeVersion = getHandBrakeVersion()
+    const probeStatus = getProbeStatus()
 
     return NextResponse.json({
       cpu: {
@@ -26,6 +28,10 @@ export async function GET() {
       platform: system.platform,
       hostname: system.hostname,
       handbrakeVersion,
+      tools: {
+        ffprobe: probeStatus.ffprobe,
+        handbrake: probeStatus.handbrake,
+      },
     })
   } catch (error) {
     console.error("GET /api/system error:", error)

@@ -23,14 +23,14 @@ RUN apt-get update && \
     python3 make g++ && \
     rm -rf /var/lib/apt/lists/*
 
-# Install HandBrakeCLI
+# Install HandBrakeCLI + ffmpeg (ffprobe for media analysis)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     software-properties-common && \
     add-apt-repository -y ppa:stebbins/handbrake-releases && \
     apt-get update && \
     apt-get install -y --no-install-recommends \
-    handbrake-cli && \
+    handbrake-cli ffmpeg && \
     apt-get purge -y software-properties-common && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
