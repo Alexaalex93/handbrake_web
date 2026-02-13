@@ -23,6 +23,10 @@ interface FileBrowserProps {
   onSelect: (path: string) => void
   onClose: () => void
   directoryOnly?: boolean
+  /** Filter files by extensions, e.g. [".exe", ".bin"] */
+  fileFilter?: string[]
+  /** Hint text shown in the header, e.g. "Select HandBrakeCLI.exe" */
+  title?: string
 }
 
 // Check if a path looks like a Windows drive root (e.g. "C:\")
@@ -72,7 +76,7 @@ function getBreadcrumbs(p: string): { label: string; path: string }[] {
   return crumbs
 }
 
-export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBrowserProps) {
+export function FileBrowser({ onSelect, onClose, directoryOnly = false, fileFilter, title }: FileBrowserProps) {
   const [currentPath, setCurrentPath] = useState("/")
   const [entries, setEntries] = useState<FileEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -120,6 +124,13 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
 
   const isDir = (entry: FileEntry) => entry.type === "directory"
   const isDrive = (entry: FileEntry) => isDriveRoot(entry.path)
+  const matchesFilter = (entry: FileEntry) => {
+    if (isDir(entry)) return true
+    if (directoryOnly) return false
+    if (!fileFilter || fileFilter.length === 0) return true
+    const ext = entry.name.substring(entry.name.lastIndexOf(".")).toLowerCase()
+    return fileFilter.some(f => f.toLowerCase() === ext)
+  }
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
@@ -127,7 +138,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-4 py-3">
           <h3 className="text-sm font-semibold text-[hsl(var(--card-foreground))]">
-            {directoryOnly ? "Select Directory" : "Select File"}
+            {title || (directoryOnly ? "Select Directory" : "Select File")}
           </h3>
           <button
             onClick={onClose}
@@ -202,7 +213,7 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
                   onClick={() => {
                     if (isDir(entry)) {
                       setCurrentPath(entry.path)
-                    } else if (!directoryOnly) {
+                    } else if (matchesFilter(entry)) {
                       onSelect(entry.path)
                     }
                   }}
@@ -212,8 +223,8 @@ export function FileBrowser({ onSelect, onClose, directoryOnly = false }: FileBr
                     }
                   }}
                   className={`flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-[hsl(var(--accent))] ${
-                    !isDir(entry) && directoryOnly
-                      ? "opacity-50 cursor-default"
+                    !matchesFilter(entry)
+                      ? "opacity-30 cursor-default"
                       : ""
                   }`}
                 >

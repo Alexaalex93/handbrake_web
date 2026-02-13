@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react"
 import useSWR from "swr"
-import { Loader2, Save } from "lucide-react"
+import { Loader2, Save, FolderOpen } from "lucide-react"
+import { FileBrowser } from "@/components/shared/file-browser"
 import type { Schedule } from "@/types/settings"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
@@ -47,6 +48,9 @@ export default function SettingsPage() {
     updatedAt: "",
   })
   const [saving, setSaving] = useState(false)
+  const [browsing, setBrowsing] = useState<"handbrake" | "ffprobe" | "output" | null>(null)
+
+  const isWindows = typeof navigator !== "undefined" && navigator.platform?.startsWith("Win")
 
   useEffect(() => {
     if (settingsData && !("error" in settingsData)) {
@@ -141,32 +145,53 @@ export default function SettingsPage() {
             <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
               HandBrakeCLI Path
             </label>
-            <input
-              type="text"
-              value={settings.handbrake_path}
-              onChange={(e) =>
-                setSettings({ ...settings, handbrake_path: e.target.value })
-              }
-              placeholder="/usr/bin/HandBrakeCLI"
-              className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={settings.handbrake_path}
+                onChange={(e) =>
+                  setSettings({ ...settings, handbrake_path: e.target.value })
+                }
+                placeholder={isWindows ? "C:\\HandBrake\\HandBrakeCLI.exe" : "/usr/bin/HandBrakeCLI"}
+                className="flex-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+              />
+              <button
+                onClick={() => setBrowsing("handbrake")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Browse
+              </button>
+            </div>
+            <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+              {isWindows ? "Select HandBrakeCLI.exe (download from handbrake.fr)" : "Usually /usr/bin/HandBrakeCLI on Linux"}
+            </p>
           </div>
 
           <div>
             <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
               ffprobe Path
             </label>
-            <input
-              type="text"
-              value={settings.ffprobe_path}
-              onChange={(e) =>
-                setSettings({ ...settings, ffprobe_path: e.target.value })
-              }
-              placeholder="ffprobe or C:\ffmpeg\bin\ffprobe.exe"
-              className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={settings.ffprobe_path}
+                onChange={(e) =>
+                  setSettings({ ...settings, ffprobe_path: e.target.value })
+                }
+                placeholder={isWindows ? "C:\\ffmpeg\\bin\\ffprobe.exe" : "/usr/bin/ffprobe"}
+                className="flex-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+              />
+              <button
+                onClick={() => setBrowsing("ffprobe")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Browse
+              </button>
+            </div>
             <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
-              Used to analyze media files in Libraries. Install ffmpeg to get ffprobe.
+              {isWindows ? "Select ffprobe.exe (download ffmpeg from gyan.dev/ffmpeg/builds)" : "Usually /usr/bin/ffprobe on Linux. Install: apt install ffmpeg"}
             </p>
           </div>
 
@@ -211,15 +236,24 @@ export default function SettingsPage() {
             <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
               Default Output Directory
             </label>
-            <input
-              type="text"
-              value={settings.default_output_dir}
-              onChange={(e) =>
-                setSettings({ ...settings, default_output_dir: e.target.value })
-              }
-              placeholder="/path/to/output"
-              className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
-            />
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={settings.default_output_dir}
+                onChange={(e) =>
+                  setSettings({ ...settings, default_output_dir: e.target.value })
+                }
+                placeholder="/path/to/output"
+                className="flex-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+              />
+              <button
+                onClick={() => setBrowsing("output")}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
+              >
+                <FolderOpen className="h-4 w-4" />
+                Browse
+              </button>
+            </div>
           </div>
 
           <div>
@@ -429,6 +463,32 @@ export default function SettingsPage() {
           <p className="text-sm text-[hsl(var(--muted-foreground))]">Loading system info...</p>
         )}
       </section>
+
+      {/* File browser dialogs */}
+      {browsing === "handbrake" && (
+        <FileBrowser
+          title={isWindows ? "Select HandBrakeCLI.exe" : "Select HandBrakeCLI binary"}
+          fileFilter={isWindows ? [".exe"] : []}
+          onSelect={(p) => { setSettings({ ...settings, handbrake_path: p }); setBrowsing(null) }}
+          onClose={() => setBrowsing(null)}
+        />
+      )}
+      {browsing === "ffprobe" && (
+        <FileBrowser
+          title={isWindows ? "Select ffprobe.exe" : "Select ffprobe binary"}
+          fileFilter={isWindows ? [".exe"] : []}
+          onSelect={(p) => { setSettings({ ...settings, ffprobe_path: p }); setBrowsing(null) }}
+          onClose={() => setBrowsing(null)}
+        />
+      )}
+      {browsing === "output" && (
+        <FileBrowser
+          title="Select Output Directory"
+          directoryOnly
+          onSelect={(p) => { setSettings({ ...settings, default_output_dir: p }); setBrowsing(null) }}
+          onClose={() => setBrowsing(null)}
+        />
+      )}
     </div>
   )
 }
