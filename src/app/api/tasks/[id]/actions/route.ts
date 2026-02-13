@@ -20,9 +20,9 @@ export async function POST(
     const body = await request.json()
     const { action } = body
 
-    if (!action || !["pause", "resume", "cancel", "retry"].includes(action)) {
+    if (!action || !["start", "pause", "resume", "cancel", "retry"].includes(action)) {
       return NextResponse.json(
-        { error: "Invalid action. Must be one of: pause, resume, cancel, retry" },
+        { error: "Invalid action. Must be one of: start, pause, resume, cancel, retry" },
         { status: 400 }
       )
     }
@@ -30,6 +30,20 @@ export async function POST(
     const queueManager = getQueueManager()
 
     switch (action) {
+      case "start": {
+        if (task.status !== "pending" && task.status !== "queued") {
+          return NextResponse.json(
+            { error: "Can only start a pending or queued task" },
+            { status: 409 }
+          )
+        }
+        db.prepare("UPDATE tasks SET status = 'queued' WHERE id = ?").run(taskId)
+        emitEvent({ type: "task:status", taskId, data: { status: "queued" } })
+        emitEvent({ type: "queue:changed" })
+        queueManager.processQueue()
+        break
+      }
+
       case "pause": {
         if (task.status !== "encoding") {
           return NextResponse.json(

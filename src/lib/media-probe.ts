@@ -1,5 +1,7 @@
 import { execSync } from "child_process"
+import fs from "fs"
 import path from "path"
+import os from "os"
 
 export interface MediaInfo {
   duration: number | null
@@ -14,26 +16,102 @@ export interface MediaInfo {
   container: string | null
 }
 
+// Cache tool availability to avoid repeated failed execSync calls
+let _ffprobePath: string | null | undefined = undefined // undefined = not checked yet
+let _handBrakePath: string | null | undefined = undefined
+
+/** Find ffprobe binary, checking common install locations on Windows */
+function findFfprobe(): string | null {
+  if (_ffprobePath !== undefined) return _ffprobePath
+
+  // Try PATH first
+  try {
+    execSync("ffprobe -version", { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+    _ffprobePath = "ffprobe"
+    return _ffprobePath
+  } catch {
+    // Not in PATH
+  }
+
+  // Check common Windows locations
+  if (os.platform() === "win32") {
+    const commonPaths = [
+      "C:\\ffmpeg\\bin\\ffprobe.exe",
+      "C:\\Program Files\\ffmpeg\\bin\\ffprobe.exe",
+      "C:\\Program Files (x86)\\ffmpeg\\bin\\ffprobe.exe",
+      path.join(os.homedir(), "scoop", "apps", "ffmpeg", "current", "bin", "ffprobe.exe"),
+      path.join(os.homedir(), "AppData", "Local", "Programs", "ffmpeg", "bin", "ffprobe.exe"),
+    ]
+    for (const p of commonPaths) {
+      try {
+        if (fs.existsSync(p)) {
+          _ffprobePath = p
+          return _ffprobePath
+        }
+      } catch {
+        // skip
+      }
+    }
+  }
+
+  _ffprobePath = null
+  return null
+}
+
+/** Find HandBrakeCLI binary */
+function findHandBrake(): string | null {
+  if (_handBrakePath !== undefined) return _handBrakePath
+
+  try {
+    // Try importing the configured path from settings
+    const { getDb } = require("@/lib/db")
+    const db = getDb()
+    const row = db.prepare("SELECT value FROM settings WHERE key = ?").get("handbrake_path") as { value: string } | undefined
+    const hbPath = row?.value || "HandBrakeCLI"
+
+    execSync(`"${hbPath}" --version`, { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+    _handBrakePath = hbPath
+    return _handBrakePath
+  } catch {
+    // Not available
+  }
+
+  _handBrakePath = null
+  return null
+}
+
+/** Check which probe tools are available */
+export function getProbeStatus(): { ffprobe: boolean; handbrake: boolean } {
+  return {
+    ffprobe: findFfprobe() !== null,
+    handbrake: findHandBrake() !== null,
+  }
+}
+
 /**
  * Probe media file info using ffprobe (preferred) or HandBrakeCLI --scan.
  * Returns basic codec/resolution/duration info for library scanning.
  */
 export function probeMediaFile(filePath: string): MediaInfo {
-  // Try ffprobe first (faster and more reliable for just metadata)
-  try {
-    return probeWithFfprobe(filePath)
-  } catch {
-    // ffprobe not available, skip
+  const ffprobe = findFfprobe()
+  if (ffprobe) {
+    try {
+      return probeWithFfprobe(ffprobe, filePath)
+    } catch {
+      // ffprobe failed for this file, try HandBrake
+    }
   }
 
-  // Try HandBrakeCLI scan as fallback
-  try {
-    return probeWithHandBrake(filePath)
-  } catch {
-    // Neither available
+  const hb = findHandBrake()
+  if (hb) {
+    try {
+      return probeWithHandBrake(hb, filePath)
+    } catch {
+      // HandBrake also failed
+    }
   }
 
-  // Return basic info from file extension
+  // No tools available — return basic info from file extension
   const ext = path.extname(filePath).toLowerCase().replace(".", "")
   return {
     duration: null,
@@ -49,10 +127,10 @@ export function probeMediaFile(filePath: string): MediaInfo {
   }
 }
 
-function probeWithFfprobe(filePath: string): MediaInfo {
+function probeWithFfprobe(ffprobePath: string, filePath: string): MediaInfo {
   const output = execSync(
-    `ffprobe -v quiet -print_format json -show_format -show_streams "${filePath}"`,
-    { encoding: "utf-8", timeout: 30000 }
+    `"${ffprobePath}" -v quiet -print_format json -show_format -show_streams "${filePath}"`,
+    { encoding: "utf-8", timeout: 30000, stdio: ["pipe", "pipe", "pipe"] }
   )
   const data = JSON.parse(output)
 
@@ -75,13 +153,13 @@ function probeWithFfprobe(filePath: string): MediaInfo {
   }
 }
 
-function probeWithHandBrake(filePath: string): MediaInfo {
+function probeWithHandBrake(hbPath: string, filePath: string): MediaInfo {
   const output = execSync(
-    `HandBrakeCLI -i "${filePath}" --scan --json -t 1 2>&1`,
-    { encoding: "utf-8", timeout: 60000 }
+    `"${hbPath}" -i "${filePath}" --scan --json -t 1 2>&1`,
+    { encoding: "utf-8", timeout: 60000, stdio: ["pipe", "pipe", "pipe"] }
   )
 
-  // Extract JSON from HandBrakeCLI output (it outputs JSON between markers)
+  // Extract JSON from HandBrakeCLI output
   const jsonMatch = output.match(/\{[\s\S]*"TitleList"[\s\S]*\}/)
   if (!jsonMatch) {
     throw new Error("No JSON output from HandBrakeCLI")

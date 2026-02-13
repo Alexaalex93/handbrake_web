@@ -26,7 +26,11 @@ interface TaskListProps {
 }
 
 async function taskAction(id: number, action: string) {
-  await fetch(`/api/tasks/${id}/${action}`, { method: "POST" })
+  await fetch(`/api/tasks/${id}/actions`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action }),
+  })
 }
 
 async function deleteTask(id: number) {
