@@ -58,13 +58,12 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
       }
 
       const output = execSync(
-        `wmic logicaldisk where "DeviceID='${driveLetter}:'" get FreeSpace,Size /format:csv`,
+        `powershell -NoProfile -Command "Get-Volume -DriveLetter ${driveLetter} | Select-Object SizeRemaining,Size | ConvertTo-Json"`,
         { encoding: "utf-8", timeout: 5000 }
       )
-      const lines = output.trim().split("\n").filter(l => l.trim())
-      const last = lines[lines.length - 1].split(",")
-      const free = parseInt(last[1]) || 0
-      const total = parseInt(last[2]) || 0
+      const data = JSON.parse(output)
+      const free = data.SizeRemaining || 0
+      const total = data.Size || 0
       return { free, total, used: total - free }
     } else {
       const path = targetPath || "/"

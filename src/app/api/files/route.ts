@@ -13,41 +13,35 @@ interface FileEntry {
 
 function getWindowsDrives(): FileEntry[] {
   try {
-    // Use wmic to list drives on Windows
-    const output = execSync("wmic logicaldisk get name", {
-      encoding: "utf-8",
-      timeout: 5000,
-    })
+    // Use PowerShell to list drives (wmic is deprecated on Windows 11)
+    const output = execSync(
+      'powershell -NoProfile -Command "Get-PSDrive -PSProvider FileSystem | Select-Object -ExpandProperty Root"',
+      { encoding: "utf-8", timeout: 5000 }
+    )
     const drives: FileEntry[] = []
     for (const line of output.split("\n")) {
       const drive = line.trim()
-      if (/^[A-Z]:$/i.test(drive)) {
-        drives.push({
-          name: drive + "\\",
-          path: drive + "\\",
-          type: "directory",
-        })
+      if (/^[A-Z]:\\$/i.test(drive)) {
+        drives.push({ name: drive, path: drive, type: "directory" })
       }
     }
-    return drives
+    if (drives.length > 0) return drives
   } catch {
-    // Fallback: try common drive letters
-    const drives: FileEntry[] = []
-    for (const letter of "CDEFGHIJKLMNOPQRSTUVWXYZ") {
-      const drivePath = `${letter}:\\`
-      try {
-        fs.accessSync(drivePath)
-        drives.push({
-          name: drivePath,
-          path: drivePath,
-          type: "directory",
-        })
-      } catch {
-        // Drive doesn't exist
-      }
-    }
-    return drives
+    // PowerShell failed
   }
+
+  // Fallback: probe common drive letters
+  const drives: FileEntry[] = []
+  for (const letter of "CDEFGHIJKLMNOPQRSTUVWXYZ") {
+    const drivePath = `${letter}:\\`
+    try {
+      fs.accessSync(drivePath)
+      drives.push({ name: drivePath, path: drivePath, type: "directory" })
+    } catch {
+      // Drive doesn't exist
+    }
+  }
+  return drives
 }
 
 export async function GET(request: NextRequest) {
