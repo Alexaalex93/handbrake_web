@@ -24,6 +24,22 @@ class QueueManager {
   private progressThrottle: Map<number, number> = new Map()
 
   constructor() {
+    // Recovery: reset any tasks stuck in "encoding" state (no active process)
+    // This happens when the server restarts or HMR reloads modules in dev mode
+    try {
+      const db = getDb()
+      const stuck = db.prepare(
+        "SELECT id, title FROM tasks WHERE status = 'encoding'"
+      ).all() as any[]
+      if (stuck.length > 0) {
+        db.prepare(
+          "UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0 WHERE status = 'encoding'"
+        ).run()
+        console.log(`[handbrake] Recovery: reset ${stuck.length} stuck task(s) to queued: ${stuck.map(t => t.title).join(", ")}`)
+      }
+    } catch (err) {
+      console.error("[handbrake] Recovery check failed:", err)
+    }
     this.startPolling()
   }
 

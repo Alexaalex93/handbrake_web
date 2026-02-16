@@ -41,30 +41,34 @@ export function getSystemStats() {
 }
 
 // ─── Cached values for expensive operations ──────────────────────────────
-let _diskCache: { free: number; total: number; used: number } | null = null
-let _diskCacheTime = 0
+// Use globalThis so caches survive Next.js HMR module reloads in dev mode
+const _g = globalThis as any
+if (!_g.__sysCache) {
+  _g.__sysCache = {
+    disk: null as { free: number; total: number; used: number } | null,
+    diskTime: 0,
+    hbVersion: null as string | null,
+    hbVersionTime: 0,
+  }
+}
+const _cache = _g.__sysCache
 const DISK_CACHE_TTL = 30000 // 30 seconds
-
-let _hbVersionCache: string | null = null
-let _hbVersionCacheTime = 0
 const HB_VERSION_CACHE_TTL = 60000 // 60 seconds
 
 export function getDiskStats(targetPath?: string): { free: number; total: number; used: number } {
   const now = Date.now()
-  if (_diskCache && now - _diskCacheTime < DISK_CACHE_TTL) {
-    return _diskCache
+  if (_cache.disk && now - _cache.diskTime < DISK_CACHE_TTL) {
+    return _cache.disk
   }
 
   try {
     const isWindows = os.platform() === "win32"
 
     if (isWindows) {
-      // Determine which drive to query
       let driveLetter = "C"
       if (targetPath && /^[A-Za-z]:/.test(targetPath)) {
         driveLetter = targetPath.charAt(0).toUpperCase()
       } else {
-        // Use the drive where the process is running
         const cwd = process.cwd()
         if (/^[A-Za-z]:/.test(cwd)) {
           driveLetter = cwd.charAt(0).toUpperCase()
@@ -78,7 +82,7 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
       const data = JSON.parse(output)
       const free = data.SizeRemaining || 0
       const total = data.Size || 0
-      _diskCache = { free, total, used: total - free }
+      _cache.disk = { free, total, used: total - free }
     } else {
       const path = targetPath || "/"
       const output = execSync(`df -B1 "${path}" | tail -1`, { encoding: "utf-8", timeout: 5000 })
@@ -86,19 +90,19 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
       const total = parseInt(parts[1]) || 0
       const used = parseInt(parts[2]) || 0
       const free = parseInt(parts[3]) || 0
-      _diskCache = { free, total, used }
+      _cache.disk = { free, total, used }
     }
-    _diskCacheTime = now
-    return _diskCache
+    _cache.diskTime = now
+    return _cache.disk
   } catch {
-    return _diskCache || { free: 0, total: 0, used: 0 }
+    return _cache.disk || { free: 0, total: 0, used: 0 }
   }
 }
 
 export function getHandBrakeVersion(): string {
   const now = Date.now()
-  if (_hbVersionCache && now - _hbVersionCacheTime < HB_VERSION_CACHE_TTL) {
-    return _hbVersionCache
+  if (_cache.hbVersion && now - _cache.hbVersionTime < HB_VERSION_CACHE_TTL) {
+    return _cache.hbVersion
   }
 
   try {
@@ -109,12 +113,12 @@ export function getHandBrakeVersion(): string {
       stdio: ["pipe", "pipe", "pipe"],
     })
     const match = output.match(/HandBrake\s+(\S+)/)
-    _hbVersionCache = match ? match[1] : "Unknown"
-    _hbVersionCacheTime = now
-    return _hbVersionCache
+    _cache.hbVersion = match ? match[1] : "Unknown"
+    _cache.hbVersionTime = now
+    return _cache.hbVersion
   } catch {
-    _hbVersionCache = "Not found"
-    _hbVersionCacheTime = now
-    return _hbVersionCache
+    _cache.hbVersion = "Not found"
+    _cache.hbVersionTime = now
+    return _cache.hbVersion
   }
 }
