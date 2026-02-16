@@ -90,73 +90,121 @@ class QueueManager {
 
     let stderrLastChunks = ""  // Keep last 2KB for error messages
     let loggedFirstProgress = false
+    let rawLogCount = 0
 
-    // HandBrakeCLI with --json outputs multiline JSON blocks to stderr.
-    // We accumulate characters and use brace counting to extract complete JSON objects.
-    const createJsonAccumulator = () => {
-      let buffer = ""
+    console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)}`)
+
+    // Create a line-based parser that also handles multiline JSON blocks.
+    // HandBrakeCLI --json can output:
+    //   1. Single-line: Progress: { "State": 1, "Working": { ... } }
+    //   2. Or multiline JSON blocks
+    // We try single-line first, then accumulate for multiline.
+    const createStreamParser = (streamName: string) => {
+      let lineBuffer = ""
+      let jsonAccum = ""
       let braceDepth = 0
-      let inJson = false
 
       return (text: string) => {
-        for (const ch of text) {
-          if (!inJson) {
-            if (ch === "{") {
-              inJson = true
-              braceDepth = 1
-              buffer = "{"
+        lineBuffer += text
+
+        // Process complete lines
+        const lines = lineBuffer.split("\n")
+        lineBuffer = lines.pop() || "" // Keep incomplete last line
+
+        for (const rawLine of lines) {
+          const line = rawLine.trim()
+          if (!line) continue
+
+          // Log first few raw lines for debugging
+          if (rawLogCount < 5) {
+            console.log(`[handbrake] Task ${taskId} ${streamName}: ${line.substring(0, 200)}`)
+            rawLogCount++
+          }
+
+          // If we're accumulating a multiline JSON block, keep adding
+          if (braceDepth > 0) {
+            jsonAccum += " " + line
+            for (const ch of line) {
+              if (ch === "{") braceDepth++
+              else if (ch === "}") braceDepth--
             }
-            // Skip characters outside JSON blocks
-          } else {
-            buffer += ch
-            if (ch === "{") braceDepth++
-            else if (ch === "}") {
-              braceDepth--
-              if (braceDepth === 0) {
-                // Complete JSON block — try to parse it
-                const progress = parseProgressLine(buffer)
-                if (progress) {
-                  if (!loggedFirstProgress) {
-                    console.log(`[handbrake] Task ${taskId}: progress parsing active (${progress.state} ${Math.round(progress.progress * 100)}%)`)
-                    loggedFirstProgress = true
-                  }
-                  this.handleProgress(taskId, progress)
+            if (braceDepth <= 0) {
+              // Complete block — try to parse
+              const progress = parseProgressLine(jsonAccum)
+              if (progress) {
+                if (!loggedFirstProgress) {
+                  console.log(`[handbrake] Task ${taskId}: progress OK (multiline) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+                  loggedFirstProgress = true
                 }
-                buffer = ""
-                inJson = false
+                this.handleProgress(taskId, progress)
               }
+              jsonAccum = ""
+              braceDepth = 0
+            }
+            continue
+          }
+
+          // Try single-line parse first (handles "Progress: {...}" on one line)
+          const progress = parseProgressLine(line)
+          if (progress) {
+            if (!loggedFirstProgress) {
+              console.log(`[handbrake] Task ${taskId}: progress OK (single-line) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+              loggedFirstProgress = true
+            }
+            this.handleProgress(taskId, progress)
+            continue
+          }
+
+          // Check if this line starts a multiline JSON block
+          const jsonStart = line.indexOf("{")
+          if (jsonStart >= 0) {
+            jsonAccum = line.substring(jsonStart)
+            braceDepth = 0
+            for (const ch of jsonAccum) {
+              if (ch === "{") braceDepth++
+              else if (ch === "}") braceDepth--
+            }
+            if (braceDepth <= 0) {
+              // Actually complete on this line — try parsing just the JSON part
+              const p = parseProgressLine(jsonAccum)
+              if (p) {
+                if (!loggedFirstProgress) {
+                  console.log(`[handbrake] Task ${taskId}: progress OK (inline) — ${p.state} ${Math.round(p.progress * 100)}%`)
+                  loggedFirstProgress = true
+                }
+                this.handleProgress(taskId, p)
+              }
+              jsonAccum = ""
+              braceDepth = 0
             }
           }
         }
       }
     }
 
-    const stdoutAccumulator = createJsonAccumulator()
-    const stderrAccumulator = createJsonAccumulator()
-
-    // HandBrakeCLI with --json outputs progress to BOTH stdout and stderr
-    // depending on version. Parse both streams for progress.
+    const stdoutParser = createStreamParser("stdout")
+    const stderrParser = createStreamParser("stderr")
 
     proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutAccumulator(chunk.toString())
+      stdoutParser(chunk.toString())
     })
 
     proc.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString()
-      // Keep last chunks for error reporting on failure
       stderrLastChunks += text
       if (stderrLastChunks.length > 4096) {
         stderrLastChunks = stderrLastChunks.slice(-2048)
       }
-
-      stderrAccumulator(text)
+      stderrParser(text)
     })
 
     proc.on("close", (code) => {
       this.activeJobs.delete(taskId)
       this.progressThrottle.delete(taskId)
+      this.progressLogThrottle.delete(taskId)
 
       if (code === 0) {
+        console.log(`[handbrake] Task ${taskId}: completed successfully`)
         let fileSize = 0
         try {
           const stat = fs.statSync(outputPath)
@@ -210,8 +258,10 @@ class QueueManager {
     })
   }
 
+  private progressLogThrottle: Map<number, number> = new Map()
+
   private handleProgress(taskId: number, progress: import("@/types/handbrake").EncodeProgress) {
-    // Throttle to max 1 update per second per task
+    // Throttle DB updates to max 1 per second per task
     const now = Date.now()
     const lastUpdate = this.progressThrottle.get(taskId) || 0
     if (now - lastUpdate < 1000) return
@@ -235,6 +285,18 @@ class QueueManager {
         passCount: progress.passCount,
       },
     })
+
+    // Log to console every 30 seconds so user can monitor from terminal
+    const lastLog = this.progressLogThrottle.get(taskId) || 0
+    if (now - lastLog >= 30000) {
+      this.progressLogThrottle.set(taskId, now)
+      const pct = Math.round(progress.progress * 100)
+      const etaMin = Math.floor(progress.eta / 60)
+      const etaSec = Math.round(progress.eta % 60)
+      const task = db.prepare("SELECT title FROM tasks WHERE id = ?").get(taskId) as any
+      const title = task?.title || `Task ${taskId}`
+      console.log(`[handbrake] ${title}: ${pct}% | ${progress.rate.toFixed(1)} fps | ETA ${etaMin}m ${etaSec}s`)
+    }
   }
 
   private moveToHistory(taskId: number) {

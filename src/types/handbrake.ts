@@ -117,7 +117,7 @@ export const DEFAULT_ENCODING_OPTIONS: EncodingOptions = {
     encoder: "x265",
     qualityMode: "crf",
     quality: 18,
-    encoderPreset: "slow",
+    encoderPreset: "medium",
     encoderTune: "none",
     multiPass: false,
     turboFirstPass: false,
