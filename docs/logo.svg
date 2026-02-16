@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <rect width="120" height="120" rx="24" fill="#1a1a2e"/>
+  <rect x="4" y="4" width="112" height="112" rx="20" stroke="#e94560" stroke-width="2" fill="none"/>
+  <!-- Film strip holes -->
+  <rect x="12" y="20" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="12" y="36" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="12" y="52" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="12" y="68" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="12" y="84" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="100" y="20" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="100" y="36" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="100" y="52" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="100" y="68" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <rect x="100" y="84" width="8" height="8" rx="2" fill="#e94560" opacity="0.6"/>
+  <!-- Play/encode icon -->
+  <circle cx="60" cy="56" r="26" stroke="#e94560" stroke-width="3" fill="none"/>
+  <polygon points="52,42 52,70 76,56" fill="#e94560"/>
+  <!-- "WEB" text -->
+  <text x="60" y="104" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#e94560">WEB</text>
+</svg>
