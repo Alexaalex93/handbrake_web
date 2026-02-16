@@ -52,8 +52,8 @@ if (!_g.__sysCache) {
   }
 }
 const _cache = _g.__sysCache
-const DISK_CACHE_TTL = 30000 // 30 seconds
-const HB_VERSION_CACHE_TTL = 60000 // 60 seconds
+const DISK_CACHE_TTL = 300000 // 5 minutes
+const HB_VERSION_CACHE_TTL = 3600000 // 1 hour
 
 export function getDiskStats(targetPath?: string): { free: number; total: number; used: number } {
   const now = Date.now()

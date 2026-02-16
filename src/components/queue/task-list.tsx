@@ -141,7 +141,7 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
                         <Play className="h-4 w-4" />
                       </button>
                     )}
-                    {(task.status === "encoding" || task.status === "paused") && (
+                    {(task.status === "encoding" || task.status === "paused" || task.status === "queued") && (
                       <button
                         onClick={() => handleAction(task.id, "cancel")}
                         className="rounded p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--destructive))]"
@@ -151,6 +151,7 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
                       </button>
                     )}
                     {(task.status === "pending" ||
+                      task.status === "queued" ||
                       task.status === "completed" ||
                       task.status === "failed" ||
                       task.status === "cancelled") && (

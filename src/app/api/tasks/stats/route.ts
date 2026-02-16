@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server"
 import { getDb } from "@/lib/db"
+import { getQueueManager } from "@/lib/queue/manager"
 
 export async function GET() {
   try {
+    // Ensure QueueManager singleton is alive (dashboard polls this every 15s)
+    getQueueManager()
+
     const db = getDb()
 
     const counts = db.prepare(`

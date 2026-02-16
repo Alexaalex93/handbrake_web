@@ -20,7 +20,7 @@ export function ActiveJobsCard() {
   const { data, isLoading } = useSWR<Task[]>(
     "/api/tasks?status=encoding",
     fetcher,
-    { refreshInterval: 3000 }
+    { refreshInterval: 3000, keepPreviousData: true }
   )
 
   const tasks = data ?? []
@@ -49,13 +49,13 @@ export function ActiveJobsCard() {
         )}
       </div>
 
-      {isLoading && (
+      {!data && isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
         </div>
       )}
 
-      {!isLoading && tasks.length === 0 && (
+      {data && tasks.length === 0 && (
         <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
           No active encodes
         </p>

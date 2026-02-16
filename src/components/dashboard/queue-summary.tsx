@@ -16,7 +16,7 @@ export function QueueSummaryCard() {
   const { data, isLoading } = useSWR<QueueStats>(
     "/api/tasks/stats",
     fetcher,
-    { refreshInterval: 15000 }
+    { refreshInterval: 15000, keepPreviousData: true }
   )
 
   return (
@@ -28,7 +28,7 @@ export function QueueSummaryCard() {
         </h2>
       </div>
 
-      {isLoading ? (
+      {!data && isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
         </div>

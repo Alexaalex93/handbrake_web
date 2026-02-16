@@ -11,7 +11,7 @@ export function WatcherStatusCard() {
   const { data, isLoading } = useSWR<WatchedFolder[]>(
     "/api/watchers",
     fetcher,
-    { refreshInterval: 30000 }
+    { refreshInterval: 30000, keepPreviousData: true }
   )
 
   const watchers = data ?? []
@@ -33,7 +33,7 @@ export function WatcherStatusCard() {
         </Link>
       </div>
 
-      {isLoading ? (
+      {!data && isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
         </div>

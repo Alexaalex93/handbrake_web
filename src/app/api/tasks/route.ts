@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/db"
+import { getQueueManager } from "@/lib/queue/manager"
 import type { Task, CreateTaskInput } from "@/types/task"
 
 function rowToTask(row: any): Task {
@@ -32,6 +33,10 @@ function rowToTask(row: any): Task {
 
 export async function GET(request: NextRequest) {
   try {
+    // Eagerly initialize QueueManager singleton on first API call
+    // This ensures the 3s poll loop starts as soon as the dashboard loads
+    getQueueManager()
+
     const db = getDb()
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
@@ -98,6 +103,9 @@ export async function POST(request: NextRequest) {
 
     const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid)
     const task = rowToTask(row)
+
+    // Trigger immediate queue processing for the new task
+    getQueueManager().processQueue()
 
     return NextResponse.json(task, { status: 201 })
   } catch (error) {

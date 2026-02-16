@@ -68,7 +68,7 @@ export function SystemStatsCard() {
   const { data, isLoading } = useSWR<SystemInfo>(
     "/api/system",
     fetcher,
-    { refreshInterval: 30000 }
+    { refreshInterval: 30000, keepPreviousData: true }
   )
 
   const cpuUsage = data?.cpu?.usage ?? 0
@@ -86,7 +86,7 @@ export function SystemStatsCard() {
         </h2>
       </div>
 
-      {isLoading ? (
+      {!data && isLoading ? (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--muted-foreground))]" />
         </div>
