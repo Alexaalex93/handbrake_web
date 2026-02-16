@@ -88,24 +88,68 @@ class QueueManager {
     const job: ActiveJob = { taskId, process: proc, startedAt: Date.now() }
     this.activeJobs.set(taskId, job)
 
-    let stdoutBuffer = ""
+    let stderrLastChunks = ""  // Keep last 2KB for error messages
+    let loggedFirstProgress = false
 
-    proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutBuffer += chunk.toString()
-      const lines = stdoutBuffer.split("\n")
-      stdoutBuffer = lines.pop() || ""
+    // HandBrakeCLI with --json outputs multiline JSON blocks to stderr.
+    // We accumulate characters and use brace counting to extract complete JSON objects.
+    const createJsonAccumulator = () => {
+      let buffer = ""
+      let braceDepth = 0
+      let inJson = false
 
-      for (const line of lines) {
-        const progress = parseProgressLine(line)
-        if (progress) {
-          this.handleProgress(taskId, progress)
+      return (text: string) => {
+        for (const ch of text) {
+          if (!inJson) {
+            if (ch === "{") {
+              inJson = true
+              braceDepth = 1
+              buffer = "{"
+            }
+            // Skip characters outside JSON blocks
+          } else {
+            buffer += ch
+            if (ch === "{") braceDepth++
+            else if (ch === "}") {
+              braceDepth--
+              if (braceDepth === 0) {
+                // Complete JSON block — try to parse it
+                const progress = parseProgressLine(buffer)
+                if (progress) {
+                  if (!loggedFirstProgress) {
+                    console.log(`[handbrake] Task ${taskId}: progress parsing active (${progress.state} ${Math.round(progress.progress * 100)}%)`)
+                    loggedFirstProgress = true
+                  }
+                  this.handleProgress(taskId, progress)
+                }
+                buffer = ""
+                inJson = false
+              }
+            }
+          }
         }
       }
+    }
+
+    const stdoutAccumulator = createJsonAccumulator()
+    const stderrAccumulator = createJsonAccumulator()
+
+    // HandBrakeCLI with --json outputs progress to BOTH stdout and stderr
+    // depending on version. Parse both streams for progress.
+
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      stdoutAccumulator(chunk.toString())
     })
 
-    let stderrBuffer = ""
     proc.stderr?.on("data", (chunk: Buffer) => {
-      stderrBuffer += chunk.toString()
+      const text = chunk.toString()
+      // Keep last chunks for error reporting on failure
+      stderrLastChunks += text
+      if (stderrLastChunks.length > 4096) {
+        stderrLastChunks = stderrLastChunks.slice(-2048)
+      }
+
+      stderrAccumulator(text)
     })
 
     proc.on("close", (code) => {
@@ -124,6 +168,17 @@ class QueueManager {
           WHERE id = ?
         `).run(fileSize, taskId)
 
+        // Delete source file if requested and output exists with valid size
+        const taskRow = db.prepare("SELECT delete_source, source_path FROM tasks WHERE id = ?").get(taskId) as any
+        if (taskRow?.delete_source && fileSize > 0) {
+          try {
+            fs.unlinkSync(taskRow.source_path)
+            console.log(`[handbrake] Task ${taskId}: deleted source file ${taskRow.source_path}`)
+          } catch (err: any) {
+            console.error(`[handbrake] Task ${taskId}: failed to delete source: ${err.message}`)
+          }
+        }
+
         emitEvent({ type: "task:status", taskId, data: { status: "completed" } })
         this.moveToHistory(taskId)
       } else {
@@ -132,7 +187,7 @@ class QueueManager {
         if (task?.status === "cancelled") {
           this.moveToHistory(taskId)
         } else {
-          const errorMsg = stderrBuffer.slice(-500) || `Process exited with code ${code}`
+          const errorMsg = stderrLastChunks.slice(-500) || `Process exited with code ${code}`
           db.prepare("UPDATE tasks SET status = 'failed', error_message = ?, completed_at = datetime('now') WHERE id = ?")
             .run(errorMsg, taskId)
           emitEvent({ type: "task:status", taskId, data: { status: "failed", errorMessage: errorMsg } })

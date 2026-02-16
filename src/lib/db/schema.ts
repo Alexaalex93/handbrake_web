@@ -22,6 +22,7 @@ export function initializeSchema(db: Database.Database) {
       error_message TEXT,
       source_info   TEXT,
       watcher_id    INTEGER REFERENCES watched_folders(id) ON DELETE SET NULL,
+      delete_source INTEGER NOT NULL DEFAULT 0,
       created_at    TEXT NOT NULL DEFAULT (datetime('now')),
       started_at    TEXT,
       completed_at  TEXT
@@ -165,6 +166,13 @@ export function initializeSchema(db: Database.Database) {
   db.prepare(`
     INSERT OR IGNORE INTO schedule (id, enabled, mode) VALUES (1, 0, 'always')
   `).run()
+
+  // Migrations for existing databases
+  try {
+    db.prepare("SELECT delete_source FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN delete_source INTEGER NOT NULL DEFAULT 0")
+  }
 
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`

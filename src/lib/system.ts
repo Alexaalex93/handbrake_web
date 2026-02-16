@@ -40,7 +40,21 @@ export function getSystemStats() {
   }
 }
 
+// ─── Cached values for expensive operations ──────────────────────────────
+let _diskCache: { free: number; total: number; used: number } | null = null
+let _diskCacheTime = 0
+const DISK_CACHE_TTL = 30000 // 30 seconds
+
+let _hbVersionCache: string | null = null
+let _hbVersionCacheTime = 0
+const HB_VERSION_CACHE_TTL = 60000 // 60 seconds
+
 export function getDiskStats(targetPath?: string): { free: number; total: number; used: number } {
+  const now = Date.now()
+  if (_diskCache && now - _diskCacheTime < DISK_CACHE_TTL) {
+    return _diskCache
+  }
+
   try {
     const isWindows = os.platform() === "win32"
 
@@ -59,12 +73,12 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
 
       const output = execSync(
         `powershell -NoProfile -Command "Get-Volume -DriveLetter ${driveLetter} | Select-Object SizeRemaining,Size | ConvertTo-Json"`,
-        { encoding: "utf-8", timeout: 5000 }
+        { encoding: "utf-8", timeout: 10000, stdio: ["pipe", "pipe", "pipe"] }
       )
       const data = JSON.parse(output)
       const free = data.SizeRemaining || 0
       const total = data.Size || 0
-      return { free, total, used: total - free }
+      _diskCache = { free, total, used: total - free }
     } else {
       const path = targetPath || "/"
       const output = execSync(`df -B1 "${path}" | tail -1`, { encoding: "utf-8", timeout: 5000 })
@@ -72,20 +86,35 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
       const total = parseInt(parts[1]) || 0
       const used = parseInt(parts[2]) || 0
       const free = parseInt(parts[3]) || 0
-      return { free, total, used }
+      _diskCache = { free, total, used }
     }
+    _diskCacheTime = now
+    return _diskCache
   } catch {
-    return { free: 0, total: 0, used: 0 }
+    return _diskCache || { free: 0, total: 0, used: 0 }
   }
 }
 
 export function getHandBrakeVersion(): string {
+  const now = Date.now()
+  if (_hbVersionCache && now - _hbVersionCacheTime < HB_VERSION_CACHE_TTL) {
+    return _hbVersionCache
+  }
+
   try {
     const hbPath = getHandBrakePath()
-    const output = execSync(`"${hbPath}" --version 2>&1`, { encoding: "utf-8", timeout: 5000 })
+    const output = execSync(`"${hbPath}" --version 2>&1`, {
+      encoding: "utf-8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    })
     const match = output.match(/HandBrake\s+(\S+)/)
-    return match ? match[1] : "Unknown"
+    _hbVersionCache = match ? match[1] : "Unknown"
+    _hbVersionCacheTime = now
+    return _hbVersionCache
   } catch {
-    return "Not found"
+    _hbVersionCache = "Not found"
+    _hbVersionCacheTime = now
+    return _hbVersionCache
   }
 }

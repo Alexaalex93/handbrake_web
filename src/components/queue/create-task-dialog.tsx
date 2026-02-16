@@ -33,6 +33,7 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
   const [outputMode, setOutputMode] = useState<"fixed" | "beside_source">("beside_source")
   const [outputDir, setOutputDir] = useState("")
   const [outputPattern, setOutputPattern] = useState("{name}_encoded.{ext}")
+  const [deleteSource, setDeleteSource] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState("")
   const [activeTab, setActiveTab] = useState("video")
@@ -83,6 +84,7 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
           outputPath: resolvedOutput,
           options,
           title: sourcePath.split(/[/\\]/).pop() ?? "Untitled",
+          deleteSource,
         }),
       })
       if (!res.ok) {
@@ -276,14 +278,35 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
 
           {/* Step 3: Output */}
           {step === 3 && (
-            <OutputSettings
-              outputMode={outputMode}
-              outputDir={outputDir}
-              outputPattern={outputPattern}
-              onOutputModeChange={setOutputMode}
-              onOutputDirChange={setOutputDir}
-              onOutputPatternChange={setOutputPattern}
-            />
+            <div className="space-y-6">
+              <OutputSettings
+                outputMode={outputMode}
+                outputDir={outputDir}
+                outputPattern={outputPattern}
+                onOutputModeChange={setOutputMode}
+                onOutputDirChange={setOutputDir}
+                onOutputPatternChange={setOutputPattern}
+              />
+
+              <div className="border-t border-[hsl(var(--border))] pt-4">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={deleteSource}
+                    onChange={(e) => setDeleteSource(e.target.checked)}
+                    className="h-4 w-4 rounded border-[hsl(var(--border))] accent-[hsl(var(--primary))]"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
+                      Delete source file after encoding
+                    </span>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                      The original file will be permanently deleted after successful encoding. The output file must exist and have a valid size.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </div>
           )}
 
           {/* Step 4: Review */}
@@ -327,6 +350,12 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
                     {outputMode === "fixed" ? outputDir : "Beside source"}
                   </span>
                 </div>
+                {deleteSource && (
+                  <div className="flex justify-between">
+                    <span className="text-[hsl(var(--muted-foreground))]">Delete Source</span>
+                    <span className="text-orange-400 font-medium">Yes</span>
+                  </div>
+                )}
               </div>
 
               {submitError && (

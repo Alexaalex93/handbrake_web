@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useParams } from "next/navigation"
 import useSWR from "swr"
 import Link from "next/link"
@@ -13,7 +13,6 @@ import { PictureSettings } from "@/components/encoding/picture-settings"
 import { ContainerOptions } from "@/components/encoding/container-options"
 import { OutputSettings } from "@/components/encoding/output-settings"
 import { TaskProgress } from "@/components/queue/task-progress"
-import { useSSE } from "@/hooks/use-sse"
 import type { Task } from "@/types/task"
 import type { EncodingOptions } from "@/types/handbrake"
 
@@ -38,11 +37,8 @@ export default function TaskDetailPage() {
   const { data, isLoading, mutate } = useSWR<Task>(
     `/api/tasks/${id}`,
     fetcher,
-    { refreshInterval: 3000 }
+    { refreshInterval: 5000 }
   )
-
-  const { subscribe } = useSSE()
-  subscribe("progress", () => mutate())
 
   const task = data
   const [options, setOptions] = useState<EncodingOptions | null>(null)

@@ -166,7 +166,7 @@ function probeWithFfprobe(ffprobePath: string, filePath: string): MediaInfo {
     height: videoStream?.height ?? null,
     videoCodec: normalizeCodecName(videoStream?.codec_name) ?? null,
     videoBitrate: videoStream?.bit_rate ? Math.round(parseInt(videoStream.bit_rate) / 1000) : (format?.bit_rate ? Math.round(parseInt(format.bit_rate) / 1000) : null),
-    audioCodec: audioStream?.codec_name ?? null,
+    audioCodec: normalizeAudioCodec(audioStream?.codec_name) ?? null,
     audioChannels: audioStream?.channels ?? null,
     audioBitrate: audioStream?.bit_rate ? Math.round(parseInt(audioStream.bit_rate) / 1000) : null,
     subtitleCount: subtitleStreams.length,
@@ -214,7 +214,7 @@ function probeWithHandBrake(hbPath: string, filePath: string): MediaInfo {
   }
 }
 
-/** Normalize codec names to human-readable short names */
+/** Normalize video codec names to human-readable short names */
 function normalizeCodecName(codec: string | null | undefined): string | null {
   if (!codec) return null
   const c = codec.toLowerCase()
@@ -227,5 +227,23 @@ function normalizeCodecName(codec: string | null | undefined): string | null {
   if (c.includes("mpeg2") || c === "mpeg2video") return "MPEG-2"
   if (c.includes("vc1") || c === "wmv3") return "VC-1"
   if (c === "theora") return "Theora"
+  return codec.toUpperCase()
+}
+
+/** Normalize audio codec names */
+function normalizeAudioCodec(codec: string | null | undefined): string | null {
+  if (!codec) return null
+  const c = codec.toLowerCase()
+  if (c === "aac" || c.includes("aac")) return "AAC"
+  if (c === "ac3" || c === "ac-3" || c.includes("dolby")) return "AC3"
+  if (c === "eac3" || c === "ec-3") return "EAC3"
+  if (c.includes("dts")) return "DTS"
+  if (c === "truehd" || c.includes("truehd")) return "TrueHD"
+  if (c === "flac") return "FLAC"
+  if (c.includes("mp3") || c === "mp3float") return "MP3"
+  if (c.includes("mp2")) return "MP2"
+  if (c === "opus") return "Opus"
+  if (c === "vorbis") return "Vorbis"
+  if (c === "pcm_s16le" || c === "pcm_s24le" || c.startsWith("pcm_")) return "PCM"
   return codec.toUpperCase()
 }

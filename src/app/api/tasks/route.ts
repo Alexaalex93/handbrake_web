@@ -22,6 +22,7 @@ function rowToTask(row: any): Task {
     fileSize: row.file_size,
     errorMessage: row.error_message,
     sourceInfo: row.source_info ? JSON.parse(row.source_info) : null,
+    deleteSource: !!row.delete_source,
     watcherId: row.watcher_id,
     createdAt: row.created_at,
     startedAt: row.started_at,
@@ -79,9 +80,11 @@ export async function POST(request: NextRequest) {
       .get() as { max_order: number }
     const sortOrder = maxOrder.max_order + 1
 
+    const deleteSource = body.deleteSource ? 1 : 0
+
     const result = db.prepare(`
-      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json)
-      VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)
+      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source)
+      VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?)
     `).run(
       title,
       body.sourcePath,
@@ -89,7 +92,8 @@ export async function POST(request: NextRequest) {
       priority,
       sortOrder,
       presetId,
-      JSON.stringify(body.options)
+      JSON.stringify(body.options),
+      deleteSource
     )
 
     const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid)

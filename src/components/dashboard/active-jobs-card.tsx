@@ -2,23 +2,16 @@
 
 import useSWR from "swr"
 import { Loader2, PlayCircle } from "lucide-react"
-import { useSSE } from "@/hooks/use-sse"
 import type { Task } from "@/types/task"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
 export function ActiveJobsCard() {
-  const { data, isLoading, mutate } = useSWR<Task[]>(
+  const { data, isLoading } = useSWR<Task[]>(
     "/api/tasks?status=encoding",
     fetcher,
     { refreshInterval: 10000 }
   )
-  const { subscribe } = useSSE()
-
-  // Update on SSE progress events
-  subscribe("progress", () => {
-    mutate()
-  })
 
   const tasks = data ?? []
 

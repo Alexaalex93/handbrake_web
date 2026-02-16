@@ -28,6 +28,7 @@ export interface Task {
   fileSize: number
   errorMessage: string | null
   sourceInfo: ScanResult | null
+  deleteSource: boolean
   watcherId: number | null
   createdAt: string
   startedAt: string | null
@@ -59,4 +60,5 @@ export interface CreateTaskInput {
   options: EncodingOptions
   presetId?: number
   priority?: number
+  deleteSource?: boolean
 }

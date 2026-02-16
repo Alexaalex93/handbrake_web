@@ -16,7 +16,7 @@ export function QueueSummaryCard() {
   const { data, isLoading } = useSWR<QueueStats>(
     "/api/tasks/stats",
     fetcher,
-    { refreshInterval: 5000 }
+    { refreshInterval: 15000 }
   )
 
   return (

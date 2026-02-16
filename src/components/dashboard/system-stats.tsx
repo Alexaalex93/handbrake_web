@@ -68,7 +68,7 @@ export function SystemStatsCard() {
   const { data, isLoading } = useSWR<SystemInfo>(
     "/api/system",
     fetcher,
-    { refreshInterval: 5000, revalidateOnFocus: false }
+    { refreshInterval: 30000 }
   )
 
   const cpuUsage = data?.cpu?.usage ?? 0
