@@ -106,103 +106,105 @@ class QueueManager {
 
     let stderrLastChunks = ""  // Keep last 2KB for error messages
     let loggedFirstProgress = false
+    let stdoutChunks = 0
+    let stdoutBytes = 0
+    let blocksCompleted = 0
 
     console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)}`)
 
     // ── Multiline JSON block parser ─────────────────────────────────────
     // HandBrakeCLI --json outputs MULTILINE JSON blocks like:
     //   Progress: {\r\n    "State": 1,\r\n    "Working": { ... }\r\n}\r\n
-    // Each block starts with a marker (e.g., "Progress:") followed by a {
-    // and ends when brace depth returns to 0.
-    // We accumulate lines and track brace depth to assemble complete blocks.
-    const createJsonBlockParser = () => {
-      let buffer = ""
-      let jsonBlock = ""
-      let braceDepth = 0
-      let currentMarker = ""
+    // We accumulate lines, track brace depth, and parse when complete.
+    let buffer = ""
+    let jsonBlock = ""
+    let braceDepth = 0
+    let currentMarker = ""
+    const self = this  // Capture reference for closures
 
-      return (text: string) => {
-        buffer += text
+    const processStdout = (text: string) => {
+      buffer += text
 
-        // Split on any line ending
-        const lines = buffer.split(/\r\n|\r|\n/)
-        buffer = lines.pop() || ""
+      // Split on any line ending
+      const lines = buffer.split(/\r\n|\r|\n/)
+      buffer = lines.pop() || ""
 
-        for (const rawLine of lines) {
-          const line = rawLine.trim()
-          if (!line) continue
+      for (const rawLine of lines) {
+        const line = rawLine.trim()
+        if (!line) continue
 
-          // If we're accumulating a JSON block
-          if (braceDepth > 0) {
-            jsonBlock += " " + line
-            for (const ch of line) {
-              if (ch === "{") braceDepth++
-              else if (ch === "}") braceDepth--
-            }
-            if (braceDepth <= 0) {
-              // Complete block — try parsing
-              if (currentMarker === "Progress") {
-                const progress = parseProgressLine(jsonBlock)
-                if (progress) {
-                  if (!loggedFirstProgress) {
-                    console.log(`[handbrake] Task ${taskId}: progress OK — ${progress.state} ${Math.round(progress.progress * 100)}%`)
-                    loggedFirstProgress = true
-                  }
-                  this.handleProgress(taskId, progress)
-                }
-              }
-              jsonBlock = ""
-              braceDepth = 0
-              currentMarker = ""
-            }
-            continue
+        // If we're accumulating a JSON block
+        if (braceDepth > 0) {
+          jsonBlock += " " + line
+          for (const ch of line) {
+            if (ch === "{") braceDepth++
+            else if (ch === "}") braceDepth--
           }
-
-          // Check if this line starts a new JSON block: "Marker: {"
-          const markerMatch = line.match(/^(\w+)\s*:\s*\{/)
-          if (markerMatch) {
-            currentMarker = markerMatch[1]
-            // Start accumulating from the { onwards
-            const braceStart = line.indexOf("{")
-            jsonBlock = line.substring(braceStart)
+          if (braceDepth <= 0) {
+            blocksCompleted++
+            // Complete block — try parsing if it's a Progress block
+            if (currentMarker === "Progress") {
+              const progress = parseProgressLine(jsonBlock)
+              if (progress) {
+                if (!loggedFirstProgress) {
+                  console.log(`[handbrake] Task ${taskId}: progress OK — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+                  loggedFirstProgress = true
+                }
+                self.handleProgress(taskId, progress)
+              } else {
+                console.log(`[handbrake] Task ${taskId}: Progress block FAILED to parse (${jsonBlock.length} chars): ${jsonBlock.substring(0, 200)}`)
+              }
+            }
+            jsonBlock = ""
             braceDepth = 0
-            for (const ch of jsonBlock) {
-              if (ch === "{") braceDepth++
-              else if (ch === "}") braceDepth--
-            }
-            // Check if block is complete on this line
-            if (braceDepth <= 0) {
-              if (currentMarker === "Progress") {
-                const progress = parseProgressLine(jsonBlock)
-                if (progress) {
-                  if (!loggedFirstProgress) {
-                    console.log(`[handbrake] Task ${taskId}: progress OK (single-line) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
-                    loggedFirstProgress = true
-                  }
-                  this.handleProgress(taskId, progress)
-                }
-              }
-              jsonBlock = ""
-              braceDepth = 0
-              currentMarker = ""
-            }
-            continue
+            currentMarker = ""
           }
+          continue
+        }
 
-          // Also check for lines that ARE just a { starting a block (no marker)
-          if (line === "{") {
-            jsonBlock = "{"
-            braceDepth = 1
-            currentMarker = "unknown"
+        // Check if this line starts a new JSON block: "Marker: {"
+        const markerMatch = line.match(/^(\w+)\s*:\s*\{/)
+        if (markerMatch) {
+          currentMarker = markerMatch[1]
+          const braceStart = line.indexOf("{")
+          jsonBlock = line.substring(braceStart)
+          braceDepth = 0
+          for (const ch of jsonBlock) {
+            if (ch === "{") braceDepth++
+            else if (ch === "}") braceDepth--
           }
+          if (braceDepth <= 0) {
+            blocksCompleted++
+            if (currentMarker === "Progress") {
+              const progress = parseProgressLine(jsonBlock)
+              if (progress) {
+                if (!loggedFirstProgress) {
+                  console.log(`[handbrake] Task ${taskId}: progress OK (single-line) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+                  loggedFirstProgress = true
+                }
+                self.handleProgress(taskId, progress)
+              }
+            }
+            jsonBlock = ""
+            braceDepth = 0
+            currentMarker = ""
+          }
+          continue
+        }
+
+        // Standalone { starting a block
+        if (line === "{") {
+          jsonBlock = "{"
+          braceDepth = 1
+          currentMarker = "unknown"
         }
       }
     }
 
-    const stdoutParser = createJsonBlockParser()
-
     proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutParser(chunk.toString())
+      stdoutChunks++
+      stdoutBytes += chunk.length
+      processStdout(chunk.toString())
     })
 
     proc.stderr?.on("data", (chunk: Buffer) => {
@@ -212,6 +214,19 @@ class QueueManager {
         stderrLastChunks = stderrLastChunks.slice(-2048)
       }
     })
+
+    // Diagnostic at 10 seconds
+    setTimeout(() => {
+      if (self.activeJobs.has(taskId)) {
+        console.log(`[handbrake] Task ${taskId} @10s: stdout=${stdoutChunks} chunks (${stdoutBytes}B), blocks=${blocksCompleted}, progress=${loggedFirstProgress}, bufferLen=${buffer.length}, braceDepth=${braceDepth}, marker=${currentMarker}`)
+        if (buffer.length > 0) {
+          console.log(`[handbrake] Task ${taskId} @10s buffer: ${buffer.substring(0, 300).replace(/\r/g, "\\r").replace(/\n/g, "\\n")}`)
+        }
+        if (jsonBlock.length > 0) {
+          console.log(`[handbrake] Task ${taskId} @10s jsonBlock (${jsonBlock.length} chars): ${jsonBlock.substring(0, 300)}`)
+        }
+      }
+    }, 10000)
 
     proc.on("close", (code) => {
       this.activeJobs.delete(taskId)
