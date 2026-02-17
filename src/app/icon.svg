@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="96" fill="#1a1a2e"/>
+  <rect x="24" y="24" width="464" height="464" rx="76" fill="#16213e" stroke="#0f3460" stroke-width="8"/>
+  <!-- Film reel circle -->
+  <circle cx="256" cy="256" r="160" stroke="#e94560" stroke-width="16" fill="none"/>
+  <circle cx="256" cy="256" r="48" fill="#e94560"/>
+  <!-- Encoding gear teeth -->
+  <rect x="248" y="72" width="16" height="40" rx="4" fill="#e94560"/>
+  <rect x="248" y="400" width="16" height="40" rx="4" fill="#e94560"/>
+  <rect x="72" y="248" width="40" height="16" rx="4" fill="#e94560"/>
+  <rect x="400" y="248" width="40" height="16" rx="4" fill="#e94560"/>
+  <!-- Diagonal teeth -->
+  <rect x="137" y="126" width="16" height="40" rx="4" fill="#e94560" transform="rotate(45 145 146)"/>
+  <rect x="359" y="346" width="16" height="40" rx="4" fill="#e94560" transform="rotate(45 367 366)"/>
+  <rect x="346" y="126" width="16" height="40" rx="4" fill="#e94560" transform="rotate(-45 354 146)"/>
+  <rect x="126" y="346" width="16" height="40" rx="4" fill="#e94560" transform="rotate(-45 134 366)"/>
+  <!-- Play arrow in center -->
+  <polygon points="240,228 240,284 280,256" fill="#1a1a2e"/>
+</svg>
