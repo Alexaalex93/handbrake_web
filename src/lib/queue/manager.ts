@@ -107,7 +107,8 @@ class QueueManager {
     let stderrLastChunks = ""  // Keep last 2KB for error messages
     let loggedFirstProgress = false
 
-    console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)}`)
+    const limit = this.getConcurrentLimit()
+    console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)} (slot ${this.activeJobs.size}/${limit})`)
 
     // ── Multiline JSON block parser ─────────────────────────────────────
     // HandBrakeCLI --json outputs MULTILINE JSON blocks like:

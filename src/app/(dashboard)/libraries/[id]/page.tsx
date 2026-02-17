@@ -11,6 +11,10 @@ import {
   ChevronRight,
   Scan,
   Filter,
+  ListPlus,
+  X,
+  CheckSquare,
+  Square,
 } from "lucide-react"
 import type { LibraryItem } from "@/types/library"
 
@@ -61,6 +65,9 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [scanning, setScanning] = useState(false)
   const [scanResult, setScanResult] = useState<any>(null)
   const [probeProgress, setProbeProgress] = useState<ProbeProgress | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [addingToQueue, setAddingToQueue] = useState(false)
+  const [batchResult, setBatchResult] = useState<{ created: number; errors: string[] } | null>(null)
   const limit = 50
 
   const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString() })
@@ -158,6 +165,64 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const probePercent = probeProgress && probeProgress.probedTotal > 0
     ? Math.round(((probeProgress.probedFiles + probeProgress.probeErrors) / probeProgress.probedTotal) * 100)
     : 0
+
+  // Selection helpers
+  const allOnPageSelected = items.length > 0 && items.every(item => selectedIds.has(item.id))
+  const someOnPageSelected = items.some(item => selectedIds.has(item.id))
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (allOnPageSelected) {
+      // Deselect all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        for (const item of items) next.delete(item.id)
+        return next
+      })
+    } else {
+      // Select all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        for (const item of items) next.add(item.id)
+        return next
+      })
+    }
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
+
+  const handleAddToQueue = async () => {
+    if (selectedIds.size === 0) return
+    setAddingToQueue(true)
+    setBatchResult(null)
+    try {
+      const selectedItems = items.filter(item => selectedIds.has(item.id))
+      const res = await fetch("/api/tasks/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: selectedItems.map(item => ({ sourcePath: item.filePath })),
+        }),
+      })
+      const result = await res.json()
+      setBatchResult({ created: result.created, errors: result.errors || [] })
+      if (result.created > 0) {
+        clearSelection()
+      }
+    } catch {
+      setBatchResult({ created: 0, errors: ["Failed to add to queue"] })
+    } finally {
+      setAddingToQueue(false)
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -328,6 +393,11 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-[hsl(var(--border))]">
+                <th className="w-10 px-3 py-3">
+                  <button onClick={toggleSelectAll} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                    {allOnPageSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
+                  </button>
+                </th>
                 <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Name</th>
                 <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Video</th>
                 <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Resolution</th>
@@ -341,8 +411,15 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               {items.map((item) => (
                 <tr
                   key={item.id}
-                  className="border-b border-[hsl(var(--border))] last:border-b-0 hover:bg-[hsl(var(--accent))]/50"
+                  className={`border-b border-[hsl(var(--border))] last:border-b-0 hover:bg-[hsl(var(--accent))]/50 ${
+                    selectedIds.has(item.id) ? "bg-[hsl(var(--primary))]/10" : ""
+                  }`}
                 >
+                  <td className="w-10 px-3 py-3">
+                    <button onClick={() => toggleSelect(item.id)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                      {selectedIds.has(item.id) ? <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))]" /> : <Square className="h-4 w-4" />}
+                    </button>
+                  </td>
                   <td className="max-w-[300px] truncate px-4 py-3 font-medium text-[hsl(var(--card-foreground))]" title={item.filePath}>
                     {item.fileName}
                   </td>
@@ -379,6 +456,48 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Batch result notification */}
+      {batchResult && (
+        <div className={`rounded-md p-3 text-sm ${
+          batchResult.errors.length > 0 && batchResult.created === 0
+            ? "border border-[hsl(var(--destructive))]/30 bg-[hsl(var(--destructive))]/10 text-[hsl(var(--destructive))]"
+            : "border border-green-500/30 bg-green-500/10 text-green-400"
+        }`}>
+          {batchResult.created > 0 && `${batchResult.created} task(s) added to queue.`}
+          {batchResult.errors.length > 0 && (
+            <span className="ml-1 text-yellow-400">
+              {batchResult.errors.join("; ")}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Floating action bar when items selected */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 transform">
+          <div className="flex items-center gap-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-5 py-3 shadow-2xl">
+            <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
+              {selectedIds.size} selected
+            </span>
+            <button
+              onClick={handleAddToQueue}
+              disabled={addingToQueue}
+              className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
+            >
+              {addingToQueue ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
+              Add to Queue
+            </button>
+            <button
+              onClick={clearSelection}
+              className="rounded p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
+              title="Clear selection"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
