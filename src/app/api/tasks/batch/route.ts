@@ -22,11 +22,15 @@ export async function POST(request: NextRequest) {
     const db = getDb()
     const body: BatchRequest = await request.json()
 
-    if (!body.items || !Array.isArray(body.items) || body.items.length === 0) {
+    if (!body.items || !Array.isArray(body.items)) {
       return NextResponse.json(
-        { error: "items array is required and must not be empty" },
+        { error: "items array is required" },
         { status: 400 }
       )
+    }
+
+    if (body.items.length === 0) {
+      return NextResponse.json({ created: 0, errors: [], total: 0 }, { status: 201 })
     }
 
     const options = body.options ?? DEFAULT_ENCODING_OPTIONS

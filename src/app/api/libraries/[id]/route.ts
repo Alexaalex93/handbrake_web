@@ -34,12 +34,27 @@ export async function GET(
       queryParams.push(`%${search}%`)
     }
 
+    // Sorting
+    const sortParam = url.searchParams.get("sort") || "file_name"
+    const orderParam = url.searchParams.get("order") || "asc"
+    const allowedSorts: Record<string, string> = {
+      name: "file_name",
+      codec: "video_codec",
+      resolution: "width",
+      audio: "audio_codec",
+      duration: "duration",
+      size: "file_size",
+      subs: "subtitle_count",
+    }
+    const sortColumn = allowedSorts[sortParam] || "file_name"
+    const sortDir = orderParam === "desc" ? "DESC" : "ASC"
+
     const total = (db.prepare(
       `SELECT COUNT(*) as count FROM library_items ${whereClause}`
     ).get(...queryParams) as any).count
 
     const items = db.prepare(
-      `SELECT * FROM library_items ${whereClause} ORDER BY file_name ASC LIMIT ? OFFSET ?`
+      `SELECT * FROM library_items ${whereClause} ORDER BY ${sortColumn} ${sortDir} NULLS LAST LIMIT ? OFFSET ?`
     ).all(...queryParams, limit, offset) as any[]
 
     // Get codec distribution for this library

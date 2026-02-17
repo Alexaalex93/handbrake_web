@@ -15,6 +15,9 @@ import {
   X,
   CheckSquare,
   Square,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react"
 import type { LibraryItem } from "@/types/library"
 
@@ -62,15 +65,17 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [codecFilter, setCodecFilter] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [page, setPage] = useState(1)
+  const [sortBy, setSortBy] = useState("name")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [scanning, setScanning] = useState(false)
   const [scanResult, setScanResult] = useState<any>(null)
   const [probeProgress, setProbeProgress] = useState<ProbeProgress | null>(null)
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [selectedMap, setSelectedMap] = useState<Map<number, string>>(new Map()) // id -> filePath
   const [addingToQueue, setAddingToQueue] = useState(false)
   const [batchResult, setBatchResult] = useState<{ created: number; errors: string[] } | null>(null)
   const limit = 50
 
-  const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString() })
+  const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString(), sort: sortBy, order: sortOrder })
   if (codecFilter !== "all") queryParams.set("codec", codecFilter)
   if (searchTerm) queryParams.set("search", searchTerm)
 
@@ -167,50 +172,62 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     : 0
 
   // Selection helpers
-  const allOnPageSelected = items.length > 0 && items.every(item => selectedIds.has(item.id))
-  const someOnPageSelected = items.some(item => selectedIds.has(item.id))
+  const allOnPageSelected = items.length > 0 && items.every(item => selectedMap.has(item.id))
 
-  const toggleSelect = (id: number) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+  const toggleSelect = (item: LibraryItem) => {
+    setSelectedMap(prev => {
+      const next = new Map(prev)
+      if (next.has(item.id)) next.delete(item.id)
+      else next.set(item.id, item.filePath)
       return next
     })
   }
 
   const toggleSelectAll = () => {
     if (allOnPageSelected) {
-      // Deselect all on current page
-      setSelectedIds(prev => {
-        const next = new Set(prev)
+      setSelectedMap(prev => {
+        const next = new Map(prev)
         for (const item of items) next.delete(item.id)
         return next
       })
     } else {
-      // Select all on current page
-      setSelectedIds(prev => {
-        const next = new Set(prev)
-        for (const item of items) next.add(item.id)
+      setSelectedMap(prev => {
+        const next = new Map(prev)
+        for (const item of items) next.set(item.id, item.filePath)
         return next
       })
     }
   }
 
-  const clearSelection = () => setSelectedIds(new Set())
+  const clearSelection = () => setSelectedMap(new Map())
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortOrder(prev => prev === "asc" ? "desc" : "asc")
+    } else {
+      setSortBy(column)
+      setSortOrder("asc")
+    }
+    setPage(1)
+  }
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortBy !== column) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />
+    return sortOrder === "asc"
+      ? <ArrowUp className="ml-1 inline h-3 w-3" />
+      : <ArrowDown className="ml-1 inline h-3 w-3" />
+  }
 
   const handleAddToQueue = async () => {
-    if (selectedIds.size === 0) return
+    if (selectedMap.size === 0) return
     setAddingToQueue(true)
     setBatchResult(null)
     try {
-      const selectedItems = items.filter(item => selectedIds.has(item.id))
+      const batchItems = Array.from(selectedMap.values()).map(filePath => ({ sourcePath: filePath }))
       const res = await fetch("/api/tasks/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: selectedItems.map(item => ({ sourcePath: item.filePath })),
-        }),
+        body: JSON.stringify({ items: batchItems }),
       })
       const result = await res.json()
       setBatchResult({ created: result.created, errors: result.errors || [] })
@@ -398,13 +415,41 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                     {allOnPageSelected ? <CheckSquare className="h-4 w-4" /> : <Square className="h-4 w-4" />}
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Name</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Video</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Resolution</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Audio</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Duration</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size</th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Subs</th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("name")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Name<SortIcon column="name" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("codec")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Video<SortIcon column="codec" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("resolution")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Resolution<SortIcon column="resolution" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("audio")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Audio<SortIcon column="audio" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("duration")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Duration<SortIcon column="duration" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("size")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Size<SortIcon column="size" />
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                  <button onClick={() => handleSort("subs")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
+                    Subs<SortIcon column="subs" />
+                  </button>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -412,12 +457,12 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                 <tr
                   key={item.id}
                   className={`border-b border-[hsl(var(--border))] last:border-b-0 hover:bg-[hsl(var(--accent))]/50 ${
-                    selectedIds.has(item.id) ? "bg-[hsl(var(--primary))]/10" : ""
+                    selectedMap.has(item.id) ? "bg-[hsl(var(--primary))]/10" : ""
                   }`}
                 >
                   <td className="w-10 px-3 py-3">
-                    <button onClick={() => toggleSelect(item.id)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
-                      {selectedIds.has(item.id) ? <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))]" /> : <Square className="h-4 w-4" />}
+                    <button onClick={() => toggleSelect(item)} className="text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                      {selectedMap.has(item.id) ? <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))]" /> : <Square className="h-4 w-4" />}
                     </button>
                   </td>
                   <td className="max-w-[300px] truncate px-4 py-3 font-medium text-[hsl(var(--card-foreground))]" title={item.filePath}>
@@ -476,11 +521,11 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {/* Floating action bar when items selected */}
-      {selectedIds.size > 0 && (
+      {selectedMap.size > 0 && (
         <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 transform">
           <div className="flex items-center gap-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-5 py-3 shadow-2xl">
             <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
-              {selectedIds.size} selected
+              {selectedMap.size} selected
             </span>
             <button
               onClick={handleAddToQueue}
