@@ -22,6 +22,7 @@ class QueueManager {
   private activeJobs: Map<number, ActiveJob> = new Map()
   private pollInterval: ReturnType<typeof setInterval> | null = null
   private progressThrottle: Map<number, number> = new Map()
+  private processingQueue = false  // mutex to prevent concurrent processQueue calls
 
   constructor() {
     // Recovery: reset any tasks stuck in "encoding" state (no active process)
@@ -63,24 +64,31 @@ class QueueManager {
   }
 
   processQueue() {
-    if (!this.isAutoStartEnabled()) return
-    if (!isEncodingAllowed()) return
+    // Mutex: prevent concurrent calls from poll + API triggers racing
+    if (this.processingQueue) return
+    this.processingQueue = true
+    try {
+      if (!this.isAutoStartEnabled()) return
+      if (!isEncodingAllowed()) return
 
-    const limit = this.getConcurrentLimit()
-    const available = limit - this.activeJobs.size
-    if (available <= 0) return
+      const limit = this.getConcurrentLimit()
+      const available = limit - this.activeJobs.size
+      if (available <= 0) return
 
-    const db = getDb()
-    const nextTasks = db.prepare(`
-      SELECT id, source_path, output_path, options_json, preset_id
-      FROM tasks
-      WHERE status = 'queued'
-      ORDER BY priority DESC, sort_order ASC, id ASC
-      LIMIT ?
-    `).all(available) as any[]
+      const db = getDb()
+      const nextTasks = db.prepare(`
+        SELECT id, source_path, output_path, options_json, preset_id
+        FROM tasks
+        WHERE status = 'queued'
+        ORDER BY priority DESC, sort_order ASC, id ASC
+        LIMIT ?
+      `).all(available) as any[]
 
-    for (const task of nextTasks) {
-      this.startEncoding(task.id, task.source_path, task.output_path, JSON.parse(task.options_json))
+      for (const task of nextTasks) {
+        this.startEncoding(task.id, task.source_path, task.output_path, JSON.parse(task.options_json))
+      }
+    } finally {
+      this.processingQueue = false
     }
   }
 
