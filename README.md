@@ -29,11 +29,13 @@ HandBrake Web is a self-hosted web application that wraps [HandBrakeCLI](https:/
 | Feature | Description |
 |---------|-------------|
 | **Task Queue** | Create, prioritize, pause, resume, and cancel encoding jobs with real-time progress |
-| **Live Progress** | See encoding percentage, FPS, ETA, and current pass in real-time |
-| **Libraries** | Scan media folders, detect codecs (H.264, H.265, AV1), filter and search |
+| **Live Progress** | See encoding percentage, FPS, average FPS, ETA (hours/minutes), and current pass |
+| **Libraries** | Scan media folders, detect codecs, filter, search, sort by any column, batch add to queue |
+| **Batch Queue** | Select multiple files from a library and add them all to the queue at once |
 | **Presets** | Save and reuse encoding configurations, import HandBrake JSON presets |
 | **Folder Watchers** | Automatically detect new files and queue them for encoding |
 | **Scheduling** | Restrict encoding to specific hours and days of the week |
+| **Sequential Encoding** | Tasks process one at a time by default (configurable concurrent limit) |
 | **Delete Source** | Optionally delete the original file after successful encoding |
 | **GPU Encoding** | NVIDIA NVENC support for hardware-accelerated encoding |
 | **Dark Theme** | Modern dark UI built with Tailwind CSS |
@@ -52,7 +54,7 @@ The dashboard gives you a quick overview of your system: active encoding jobs wi
 
 ### Libraries
 
-Scan your media folders and inspect every file's codec, resolution, audio tracks, subtitles, duration, and file size. Filter by codec to quickly find files that need re-encoding.
+Scan your media folders and inspect every file's codec, resolution, audio tracks, subtitles, duration, and file size. Filter by codec, search by name, sort by any column, and batch-select files to add to the encoding queue.
 
 <p align="center">
   <img src="docs/screenshots/libraries.png" alt="Libraries" width="900" />
@@ -205,6 +207,35 @@ volumes:
   handbrake-data:
 ```
 
+#### Unraid Deployment
+
+```bash
+# SSH into your Unraid server
+cd /mnt/user/appdata
+git clone https://github.com/Alexaalex93/handbrake_web.git handbrake-web
+cd handbrake-web
+
+# Edit docker-compose.yml to map your media shares:
+# volumes:
+#   - handbrake-data:/app/data
+#   - /mnt/user/media/peliculas:/media/peliculas
+#   - /mnt/user/media/series:/media/series
+
+# Build and start
+docker compose up -d --build
+
+# Access at http://YOUR-NAS-IP:3000
+```
+
+When creating a library in the web UI, use the container paths (e.g., `/media/peliculas`).
+
+To update:
+```bash
+cd /mnt/user/appdata/handbrake-web
+git pull
+docker compose up -d --build
+```
+
 #### NVIDIA GPU Encoding
 
 To enable hardware-accelerated encoding with NVENC:
@@ -271,7 +302,7 @@ Each file shows:
 - Audio codec (DTS / AC3 / AAC / TrueHD / FLAC)
 - Duration, file size, subtitle count
 
-Filter by codec, search by filename, paginate through large libraries.
+Filter by codec, search by filename, sort by any column (name, codec, resolution, audio, duration, size, subtitles). Configurable page size (50, 100, 200, 400, or all). Select files with checkboxes and batch-add them to the encoding queue.
 
 ### Task Queue
 
@@ -383,7 +414,7 @@ src/
 │   │   ├── history/              # Encoding history
 │   │   └── settings/             # App configuration
 │   └── api/
-│       ├── tasks/                # Task CRUD + actions
+│       ├── tasks/                # Task CRUD + actions + batch
 │       ├── presets/              # Preset CRUD + import
 │       ├── libraries/            # Library scan + probe + progress
 │       ├── watchers/             # Watcher management
@@ -419,6 +450,7 @@ src/
 | GET | `/api/tasks/:id` | Get task details |
 | PUT | `/api/tasks/:id` | Update a pending/queued task |
 | DELETE | `/api/tasks/:id` | Delete/cancel a task |
+| POST | `/api/tasks/batch` | Batch create tasks from library items |
 | POST | `/api/tasks/:id/actions` | Start, pause, resume, cancel, retry |
 | GET | `/api/tasks/stats` | Queue statistics |
 
@@ -428,7 +460,7 @@ src/
 |--------|----------|-------------|
 | GET | `/api/libraries` | List all libraries |
 | POST | `/api/libraries` | Create a library |
-| GET | `/api/libraries/:id` | Get library items (paginated, filterable) |
+| GET | `/api/libraries/:id` | Get library items (paginated, filterable, sortable) |
 | POST | `/api/libraries/:id/scan` | Scan + probe library (background) |
 | GET | `/api/libraries/:id/scan/progress` | Poll scan/probe progress |
 
