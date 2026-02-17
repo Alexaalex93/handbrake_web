@@ -55,15 +55,22 @@ export function parseProgressLine(line: string): EncodeProgress | null {
   return null
 }
 
-function mapState(state: number): EncodeProgress["state"] | null {
-  switch (state) {
-    case 1: return "WORKING"    // HB_STATE_WORKING
-    case 2: return "PAUSED"     // HB_STATE_PAUSED
-    case 4: return "SEARCHING"  // HB_STATE_SEARCHING
-    case 5: return "WORKDONE"   // HB_STATE_WORKDONE
-    case 8: return "MUXING"     // HB_STATE_MUXING
-    default: return null
+function mapState(state: number | string): EncodeProgress["state"] | null {
+  // Handle numeric states (older HandBrake versions)
+  if (typeof state === "number") {
+    switch (state) {
+      case 1: return "WORKING"
+      case 2: return "PAUSED"
+      case 4: return "SEARCHING"
+      case 5: return "WORKDONE"
+      case 8: return "MUXING"
+      default: return null
+    }
   }
+  // Handle string states (HandBrake 1.10+)
+  const s = String(state).toUpperCase()
+  const valid: EncodeProgress["state"][] = ["WORKING", "PAUSED", "SEARCHING", "WORKDONE", "MUXING"]
+  return valid.includes(s as any) ? (s as EncodeProgress["state"]) : null
 }
 
 export function parseScanOutput(output: string): ScanResult | null {

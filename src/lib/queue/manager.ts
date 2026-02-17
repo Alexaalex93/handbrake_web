@@ -106,26 +106,22 @@ class QueueManager {
 
     let stderrLastChunks = ""  // Keep last 2KB for error messages
     let loggedFirstProgress = false
-    let stdoutChunks = 0
-    let stdoutBytes = 0
-    let blocksCompleted = 0
 
     console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)}`)
 
     // ── Multiline JSON block parser ─────────────────────────────────────
     // HandBrakeCLI --json outputs MULTILINE JSON blocks like:
-    //   Progress: {\r\n    "State": 1,\r\n    "Working": { ... }\r\n}\r\n
+    //   Progress: {\r\n    "State": "WORKING",\r\n    "Working": { ... }\r\n}\r\n
     // We accumulate lines, track brace depth, and parse when complete.
     let buffer = ""
     let jsonBlock = ""
     let braceDepth = 0
     let currentMarker = ""
-    const self = this  // Capture reference for closures
+    const self = this
 
     const processStdout = (text: string) => {
       buffer += text
 
-      // Split on any line ending
       const lines = buffer.split(/\r\n|\r|\n/)
       buffer = lines.pop() || ""
 
@@ -133,7 +129,7 @@ class QueueManager {
         const line = rawLine.trim()
         if (!line) continue
 
-        // If we're accumulating a JSON block
+        // If accumulating a JSON block
         if (braceDepth > 0) {
           jsonBlock += " " + line
           for (const ch of line) {
@@ -141,8 +137,6 @@ class QueueManager {
             else if (ch === "}") braceDepth--
           }
           if (braceDepth <= 0) {
-            blocksCompleted++
-            // Complete block — try parsing if it's a Progress block
             if (currentMarker === "Progress") {
               const progress = parseProgressLine(jsonBlock)
               if (progress) {
@@ -151,8 +145,6 @@ class QueueManager {
                   loggedFirstProgress = true
                 }
                 self.handleProgress(taskId, progress)
-              } else {
-                console.log(`[handbrake] Task ${taskId}: Progress block FAILED to parse (${jsonBlock.length} chars): ${jsonBlock.substring(0, 200)}`)
               }
             }
             jsonBlock = ""
@@ -174,12 +166,11 @@ class QueueManager {
             else if (ch === "}") braceDepth--
           }
           if (braceDepth <= 0) {
-            blocksCompleted++
             if (currentMarker === "Progress") {
               const progress = parseProgressLine(jsonBlock)
               if (progress) {
                 if (!loggedFirstProgress) {
-                  console.log(`[handbrake] Task ${taskId}: progress OK (single-line) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+                  console.log(`[handbrake] Task ${taskId}: progress OK — ${progress.state} ${Math.round(progress.progress * 100)}%`)
                   loggedFirstProgress = true
                 }
                 self.handleProgress(taskId, progress)
@@ -202,8 +193,6 @@ class QueueManager {
     }
 
     proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutChunks++
-      stdoutBytes += chunk.length
       processStdout(chunk.toString())
     })
 
@@ -214,19 +203,6 @@ class QueueManager {
         stderrLastChunks = stderrLastChunks.slice(-2048)
       }
     })
-
-    // Diagnostic at 10 seconds
-    setTimeout(() => {
-      if (self.activeJobs.has(taskId)) {
-        console.log(`[handbrake] Task ${taskId} @10s: stdout=${stdoutChunks} chunks (${stdoutBytes}B), blocks=${blocksCompleted}, progress=${loggedFirstProgress}, bufferLen=${buffer.length}, braceDepth=${braceDepth}, marker=${currentMarker}`)
-        if (buffer.length > 0) {
-          console.log(`[handbrake] Task ${taskId} @10s buffer: ${buffer.substring(0, 300).replace(/\r/g, "\\r").replace(/\n/g, "\\n")}`)
-        }
-        if (jsonBlock.length > 0) {
-          console.log(`[handbrake] Task ${taskId} @10s jsonBlock (${jsonBlock.length} chars): ${jsonBlock.substring(0, 300)}`)
-        }
-      }
-    }, 10000)
 
     proc.on("close", (code) => {
       this.activeJobs.delete(taskId)
