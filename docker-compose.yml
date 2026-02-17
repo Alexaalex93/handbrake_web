@@ -21,9 +21,10 @@ services:
     volumes:
       - handbrake-data:/app/data        # SQLite database persistence
       - /media:/media                    # Media directories (adjust to your paths)
-      # Map your specific input/output dirs:
-      # - /path/to/movies:/input
-      # - /path/to/encoded:/output
+      # --- Unraid example paths (adjust to your shares) ---
+      # - /mnt/user/media/peliculas:/media/peliculas
+      # - /mnt/user/media/series:/media/series
+      # - /mnt/user/media/encoded:/media/encoded
     environment:
       - NODE_ENV=production
     # --- Uncomment below for NVIDIA GPU encoding ---
