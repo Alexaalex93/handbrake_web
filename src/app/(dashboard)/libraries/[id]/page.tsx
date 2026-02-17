@@ -73,7 +73,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [selectedMap, setSelectedMap] = useState<Map<number, string>>(new Map()) // id -> filePath
   const [addingToQueue, setAddingToQueue] = useState(false)
   const [batchResult, setBatchResult] = useState<{ created: number; errors: string[] } | null>(null)
-  const limit = 50
+  const [limit, setLimit] = useState(50)
 
   const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString(), sort: sortBy, order: sortOrder })
   if (codecFilter !== "all") queryParams.set("codec", codecFilter)
@@ -126,7 +126,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const items: LibraryItem[] = data?.items ?? []
   const total = data?.total ?? 0
   const codecs: { codec: string; count: number }[] = data?.codecs ?? []
-  const totalPages = Math.ceil(total / limit)
+  const totalPages = limit > 0 ? Math.ceil(total / limit) : 1
 
   const isProbing = probeProgress?.status === "probing" || probeProgress?.status === "scanning"
 
@@ -546,28 +546,45 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage(Math.max(1, page - 1))}
-            disabled={page === 1}
-            className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+      {/* Pagination + Page Size */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-[hsl(var(--muted-foreground))]">Show</span>
+          <select
+            value={limit}
+            onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+            className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2 py-1 text-sm text-[hsl(var(--foreground))]"
           >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <span className="text-sm text-[hsl(var(--muted-foreground))]">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            onClick={() => setPage(Math.min(totalPages, page + 1))}
-            disabled={page === totalPages}
-            className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+            <option value={200}>200</option>
+            <option value={400}>400</option>
+            <option value={0}>All</option>
+          </select>
+          <span className="text-sm text-[hsl(var(--muted-foreground))]">items</span>
         </div>
-      )}
+        {limit > 0 && totalPages > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPage(Math.max(1, page - 1))}
+              disabled={page === 1}
+              className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="text-sm text-[hsl(var(--muted-foreground))]">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage(Math.min(totalPages, page + 1))}
+              disabled={page === totalPages}
+              className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

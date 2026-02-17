@@ -53,9 +53,17 @@ export async function GET(
       `SELECT COUNT(*) as count FROM library_items ${whereClause}`
     ).get(...queryParams) as any).count
 
-    const items = db.prepare(
-      `SELECT * FROM library_items ${whereClause} ORDER BY ${sortColumn} ${sortDir} NULLS LAST LIMIT ? OFFSET ?`
-    ).all(...queryParams, limit, offset) as any[]
+    // limit=0 means "all items" (no pagination)
+    let items: any[]
+    if (limit <= 0) {
+      items = db.prepare(
+        `SELECT * FROM library_items ${whereClause} ORDER BY ${sortColumn} ${sortDir} NULLS LAST`
+      ).all(...queryParams) as any[]
+    } else {
+      items = db.prepare(
+        `SELECT * FROM library_items ${whereClause} ORDER BY ${sortColumn} ${sortDir} NULLS LAST LIMIT ? OFFSET ?`
+      ).all(...queryParams, limit, offset) as any[]
+    }
 
     // Get codec distribution for this library
     const codecs = db.prepare(
