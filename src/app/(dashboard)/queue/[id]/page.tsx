@@ -37,7 +37,7 @@ export default function TaskDetailPage() {
   const { data, isLoading, mutate } = useSWR<Task>(
     `/api/tasks/${id}`,
     fetcher,
-    { refreshInterval: 5000 }
+    { refreshInterval: 5000, keepPreviousData: true }
   )
 
   const task = data

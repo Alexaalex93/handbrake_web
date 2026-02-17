@@ -26,6 +26,7 @@ export default function QueuePage() {
       },
       revalidateOnFocus: false,
       revalidateOnReconnect: false,
+      keepPreviousData: true,
     }
   )
 
@@ -53,7 +54,7 @@ export default function QueuePage() {
         </button>
       </div>
 
-      {isLoading ? (
+      {!data && isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--muted-foreground))]" />
         </div>
