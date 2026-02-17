@@ -15,6 +15,7 @@ interface BatchRequest {
   options?: EncodingOptions
   presetId?: number
   deleteSource?: boolean
+  replaceSource?: boolean
 }
 
 export async function POST(request: NextRequest) {
@@ -33,9 +34,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ created: 0, errors: [], total: 0 }, { status: 201 })
     }
 
-    const options = body.options ?? DEFAULT_ENCODING_OPTIONS
+    // Resolve encoding options: explicit options > preset > default
+    let options: EncodingOptions = DEFAULT_ENCODING_OPTIONS
+    if (body.options) {
+      options = body.options
+    } else if (body.presetId) {
+      const preset = db.prepare("SELECT options_json FROM presets WHERE id = ?").get(body.presetId) as any
+      if (preset) {
+        options = JSON.parse(preset.options_json)
+      }
+    }
+
     const presetId = body.presetId ?? null
     const deleteSource = body.deleteSource ? 1 : 0
+    const replaceSource = body.replaceSource ? 1 : 0
     const format = options.container?.format || "mkv"
 
     // Get current max sort_order
@@ -45,8 +57,8 @@ export async function POST(request: NextRequest) {
     let sortOrder = maxOrder.max_order + 1
 
     const insertStmt = db.prepare(`
-      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source)
-      VALUES (?, ?, ?, 'queued', 0, ?, ?, ?, ?)
+      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source, replace_source)
+      VALUES (?, ?, ?, 'queued', 0, ?, ?, ?, ?, ?)
     `)
 
     const optionsJson = JSON.stringify(options)
@@ -73,7 +85,7 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        insertStmt.run(title, item.sourcePath, outputPath, sortOrder++, presetId, optionsJson, deleteSource)
+        insertStmt.run(title, item.sourcePath, outputPath, sortOrder++, presetId, optionsJson, deleteSource, replaceSource)
         created++
       }
     })

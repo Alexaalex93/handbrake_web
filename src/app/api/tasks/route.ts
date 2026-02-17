@@ -24,6 +24,7 @@ function rowToTask(row: any): Task {
     errorMessage: row.error_message,
     sourceInfo: row.source_info ? JSON.parse(row.source_info) : null,
     deleteSource: !!row.delete_source,
+    replaceSource: !!row.replace_source,
     watcherId: row.watcher_id,
     createdAt: row.created_at,
     startedAt: row.started_at,
@@ -86,10 +87,11 @@ export async function POST(request: NextRequest) {
     const sortOrder = maxOrder.max_order + 1
 
     const deleteSource = body.deleteSource ? 1 : 0
+    const replaceSource = body.replaceSource ? 1 : 0
 
     const result = db.prepare(`
-      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source)
-      VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source, replace_source)
+      VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?, ?)
     `).run(
       title,
       body.sourcePath,
@@ -98,7 +100,8 @@ export async function POST(request: NextRequest) {
       sortOrder,
       presetId,
       JSON.stringify(body.options),
-      deleteSource
+      deleteSource,
+      replaceSource
     )
 
     const row = db.prepare("SELECT * FROM tasks WHERE id = ?").get(result.lastInsertRowid)

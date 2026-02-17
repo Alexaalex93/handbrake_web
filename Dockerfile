@@ -6,7 +6,6 @@
 FROM ubuntu:24.04
 
 ENV DEBIAN_FRONTEND=noninteractive
-ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Install Node.js 20
@@ -24,15 +23,10 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install HandBrakeCLI + ffmpeg (ffprobe for media analysis)
+# handbrake-cli is available in Ubuntu 24.04 Universe repos (no PPA needed)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    software-properties-common && \
-    add-apt-repository -y ppa:stebbins/handbrake-releases && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends \
     handbrake-cli ffmpeg && \
-    apt-get purge -y software-properties-common && \
-    apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -45,7 +39,8 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-# Remove dev dependencies after build
+# Switch to production and remove dev dependencies
+ENV NODE_ENV=production
 RUN npm prune --omit=dev
 
 # Clean up build tools to reduce image size

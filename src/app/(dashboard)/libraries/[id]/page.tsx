@@ -74,6 +74,10 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [addingToQueue, setAddingToQueue] = useState(false)
   const [batchResult, setBatchResult] = useState<{ created: number; errors: string[] } | null>(null)
   const [limit, setLimit] = useState(50)
+  const [showBatchDialog, setShowBatchDialog] = useState(false)
+  const [batchPresetId, setBatchPresetId] = useState<number | null>(null)
+  const [batchReplaceSource, setBatchReplaceSource] = useState(false)
+  const [batchDeleteSource, setBatchDeleteSource] = useState(false)
 
   const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString(), sort: sortBy, order: sortOrder })
   if (codecFilter !== "all") queryParams.set("codec", codecFilter)
@@ -83,6 +87,9 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     `/api/libraries/${libraryId}?${queryParams.toString()}`,
     fetcher
   )
+
+  const { data: presetsData } = useSWR("/api/presets", fetcher)
+  const presets: { id: number; name: string }[] = presetsData ?? []
 
   // Check if there's an ongoing probe when we first load
   useEffect(() => {
@@ -218,16 +225,29 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
       : <ArrowDown className="ml-1 inline h-3 w-3" />
   }
 
+  const openBatchDialog = () => {
+    setBatchPresetId(null)
+    setBatchReplaceSource(false)
+    setBatchDeleteSource(false)
+    setShowBatchDialog(true)
+  }
+
   const handleAddToQueue = async () => {
     if (selectedMap.size === 0) return
     setAddingToQueue(true)
     setBatchResult(null)
+    setShowBatchDialog(false)
     try {
       const batchItems = Array.from(selectedMap.values()).map(filePath => ({ sourcePath: filePath }))
+      const body: any = { items: batchItems }
+      if (batchPresetId) body.presetId = batchPresetId
+      if (batchReplaceSource) body.replaceSource = true
+      else if (batchDeleteSource) body.deleteSource = true
+
       const res = await fetch("/api/tasks/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: batchItems }),
+        body: JSON.stringify(body),
       })
       const result = await res.json()
       setBatchResult({ created: result.created, errors: result.errors || [] })
@@ -528,7 +548,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               {selectedMap.size} selected
             </span>
             <button
-              onClick={handleAddToQueue}
+              onClick={openBatchDialog}
               disabled={addingToQueue}
               className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
             >
@@ -542,6 +562,93 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
             >
               <X className="h-4 w-4" />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Batch queue dialog */}
+      {showBatchDialog && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60">
+          <div className="mx-4 w-full max-w-md rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-2xl">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[hsl(var(--card-foreground))]">
+                Add {selectedMap.size} item{selectedMap.size > 1 ? "s" : ""} to Queue
+              </h3>
+              <button onClick={() => setShowBatchDialog(false)} className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Preset selector */}
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Encoding Preset</label>
+                <select
+                  value={batchPresetId ?? ""}
+                  onChange={(e) => setBatchPresetId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+                >
+                  <option value="">Default (x265 RF18 slow)</option>
+                  {presets.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Source file options */}
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">After encoding</label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+                    <input
+                      type="radio"
+                      name="sourceAction"
+                      checked={!batchDeleteSource && !batchReplaceSource}
+                      onChange={() => { setBatchDeleteSource(false); setBatchReplaceSource(false) }}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Keep original file
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+                    <input
+                      type="radio"
+                      name="sourceAction"
+                      checked={batchDeleteSource}
+                      onChange={() => { setBatchDeleteSource(true); setBatchReplaceSource(false) }}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Delete original (keep encoded as _encoded)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--muted-foreground))]">
+                    <input
+                      type="radio"
+                      name="sourceAction"
+                      checked={batchReplaceSource}
+                      onChange={() => { setBatchReplaceSource(true); setBatchDeleteSource(false) }}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Replace original (delete original, rename encoded to original name)
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                onClick={() => setShowBatchDialog(false)}
+                className="rounded-md border border-[hsl(var(--border))] px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddToQueue}
+                disabled={addingToQueue}
+                className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
+              >
+                {addingToQueue ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
+                Add {selectedMap.size} to Queue
+              </button>
+            </div>
           </div>
         </div>
       )}

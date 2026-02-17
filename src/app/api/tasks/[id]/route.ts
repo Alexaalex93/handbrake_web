@@ -24,6 +24,7 @@ function rowToTask(row: any): Task {
     errorMessage: row.error_message,
     sourceInfo: row.source_info ? JSON.parse(row.source_info) : null,
     deleteSource: !!row.delete_source,
+    replaceSource: !!row.replace_source,
     watcherId: row.watcher_id,
     createdAt: row.created_at,
     startedAt: row.started_at,

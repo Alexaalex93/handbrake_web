@@ -29,6 +29,7 @@ export interface Task {
   errorMessage: string | null
   sourceInfo: ScanResult | null
   deleteSource: boolean
+  replaceSource: boolean
   watcherId: number | null
   createdAt: string
   startedAt: string | null
@@ -61,4 +62,5 @@ export interface CreateTaskInput {
   presetId?: number
   priority?: number
   deleteSource?: boolean
+  replaceSource?: boolean
 }

@@ -231,14 +231,26 @@ class QueueManager {
           WHERE id = ?
         `).run(fileSize, taskId)
 
-        // Delete source file if requested and output exists with valid size
-        const taskRow = db.prepare("SELECT delete_source, source_path FROM tasks WHERE id = ?").get(taskId) as any
-        if (taskRow?.delete_source && fileSize > 0) {
-          try {
-            fs.unlinkSync(taskRow.source_path)
-            console.log(`[handbrake] Task ${taskId}: deleted source file ${taskRow.source_path}`)
-          } catch (err: any) {
-            console.error(`[handbrake] Task ${taskId}: failed to delete source: ${err.message}`)
+        // Post-encode file operations
+        const taskRow = db.prepare("SELECT delete_source, replace_source, source_path, output_path FROM tasks WHERE id = ?").get(taskId) as any
+        if (taskRow && fileSize > 0) {
+          if (taskRow.replace_source) {
+            // Replace source: delete original, rename output to original name
+            try {
+              fs.unlinkSync(taskRow.source_path)
+              fs.renameSync(outputPath, taskRow.source_path)
+              console.log(`[handbrake] Task ${taskId}: replaced source file ${taskRow.source_path}`)
+            } catch (err: any) {
+              console.error(`[handbrake] Task ${taskId}: failed to replace source: ${err.message}`)
+            }
+          } else if (taskRow.delete_source) {
+            // Delete source: just remove the original, keep encoded as _encoded
+            try {
+              fs.unlinkSync(taskRow.source_path)
+              console.log(`[handbrake] Task ${taskId}: deleted source file ${taskRow.source_path}`)
+            } catch (err: any) {
+              console.error(`[handbrake] Task ${taskId}: failed to delete source: ${err.message}`)
+            }
           }
         }
 

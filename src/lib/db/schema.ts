@@ -174,6 +174,12 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE tasks ADD COLUMN delete_source INTEGER NOT NULL DEFAULT 0")
   }
 
+  try {
+    db.prepare("SELECT replace_source FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN replace_source INTEGER NOT NULL DEFAULT 0")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0
