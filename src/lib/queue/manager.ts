@@ -106,113 +106,95 @@ class QueueManager {
 
     let stderrLastChunks = ""  // Keep last 2KB for error messages
     let loggedFirstProgress = false
-    let rawLogCount = 0
+    let stdoutChunkCount = 0
+    let stderrChunkCount = 0
+    let stdoutTotalBytes = 0
+    let stderrTotalBytes = 0
 
     console.log(`[handbrake] Task ${taskId}: encoding started — ${path.basename(sourcePath)}`)
+    console.log(`[handbrake] Task ${taskId}: pid=${proc.pid}, stdout=${!!proc.stdout}, stderr=${!!proc.stderr}`)
 
-    // Create a line-based parser that also handles multiline JSON blocks.
-    // HandBrakeCLI --json can output:
-    //   1. Single-line: Progress: { "State": 1, "Working": { ... } }
-    //   2. Or multiline JSON blocks
-    // We try single-line first, then accumulate for multiline.
-    const createStreamParser = (streamName: string) => {
-      let lineBuffer = ""
-      let jsonAccum = ""
-      let braceDepth = 0
+    // Simple line-based parser for HandBrakeCLI --json output
+    // Progress comes as: Progress: { "State": 1, "Working": { ... } }
+    // It can also come as \r-separated updates (no newlines!)
+    const createStreamHandler = (streamName: string) => {
+      let buffer = ""
 
-      return (text: string) => {
-        lineBuffer += text
+      return (chunk: Buffer) => {
+        const text = chunk.toString()
+        buffer += text
 
-        // Process complete lines
-        const lines = lineBuffer.split("\n")
-        lineBuffer = lines.pop() || "" // Keep incomplete last line
+        // HandBrakeCLI uses \r (carriage return) to update progress in-place,
+        // and \n for new lines. Split on both.
+        const parts = buffer.split(/[\r\n]+/)
+        buffer = parts.pop() || "" // Keep incomplete last part
 
-        for (const rawLine of lines) {
+        for (const rawLine of parts) {
           const line = rawLine.trim()
           if (!line) continue
 
-          // Log first few raw lines for debugging
-          if (rawLogCount < 5) {
-            console.log(`[handbrake] Task ${taskId} ${streamName}: ${line.substring(0, 200)}`)
-            rawLogCount++
-          }
-
-          // If we're accumulating a multiline JSON block, keep adding
-          if (braceDepth > 0) {
-            jsonAccum += " " + line
-            for (const ch of line) {
-              if (ch === "{") braceDepth++
-              else if (ch === "}") braceDepth--
-            }
-            if (braceDepth <= 0) {
-              // Complete block — try to parse
-              const progress = parseProgressLine(jsonAccum)
-              if (progress) {
-                if (!loggedFirstProgress) {
-                  console.log(`[handbrake] Task ${taskId}: progress OK (multiline) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
-                  loggedFirstProgress = true
-                }
-                this.handleProgress(taskId, progress)
-              }
-              jsonAccum = ""
-              braceDepth = 0
-            }
-            continue
-          }
-
-          // Try single-line parse first (handles "Progress: {...}" on one line)
+          // Try to parse progress
           const progress = parseProgressLine(line)
           if (progress) {
             if (!loggedFirstProgress) {
-              console.log(`[handbrake] Task ${taskId}: progress OK (single-line) — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+              console.log(`[handbrake] Task ${taskId}: FIRST PROGRESS from ${streamName} — ${progress.state} ${Math.round(progress.progress * 100)}%`)
+              console.log(`[handbrake] Task ${taskId}: raw line: ${line.substring(0, 300)}`)
               loggedFirstProgress = true
             }
             this.handleProgress(taskId, progress)
-            continue
-          }
-
-          // Check if this line starts a multiline JSON block
-          const jsonStart = line.indexOf("{")
-          if (jsonStart >= 0) {
-            jsonAccum = line.substring(jsonStart)
-            braceDepth = 0
-            for (const ch of jsonAccum) {
-              if (ch === "{") braceDepth++
-              else if (ch === "}") braceDepth--
-            }
-            if (braceDepth <= 0) {
-              // Actually complete on this line — try parsing just the JSON part
-              const p = parseProgressLine(jsonAccum)
-              if (p) {
-                if (!loggedFirstProgress) {
-                  console.log(`[handbrake] Task ${taskId}: progress OK (inline) — ${p.state} ${Math.round(p.progress * 100)}%`)
-                  loggedFirstProgress = true
-                }
-                this.handleProgress(taskId, p)
-              }
-              jsonAccum = ""
-              braceDepth = 0
-            }
           }
         }
       }
     }
 
-    const stdoutParser = createStreamParser("stdout")
-    const stderrParser = createStreamParser("stderr")
+    const stdoutHandler = createStreamHandler("stdout")
+    const stderrHandler = createStreamHandler("stderr")
 
     proc.stdout?.on("data", (chunk: Buffer) => {
-      stdoutParser(chunk.toString())
+      stdoutChunkCount++
+      stdoutTotalBytes += chunk.length
+      // Log first 3 stdout chunks raw for diagnosis
+      if (stdoutChunkCount <= 3) {
+        const preview = chunk.toString().substring(0, 500).replace(/\r/g, "\\r").replace(/\n/g, "\\n")
+        console.log(`[handbrake] Task ${taskId} stdout chunk #${stdoutChunkCount} (${chunk.length}B): ${preview}`)
+      }
+      // Log periodic stats
+      if (stdoutChunkCount % 100 === 0) {
+        console.log(`[handbrake] Task ${taskId}: stdout ${stdoutChunkCount} chunks, ${stdoutTotalBytes} bytes total`)
+      }
+      stdoutHandler(chunk)
     })
 
     proc.stderr?.on("data", (chunk: Buffer) => {
       const text = chunk.toString()
+      stderrChunkCount++
+      stderrTotalBytes += chunk.length
       stderrLastChunks += text
       if (stderrLastChunks.length > 4096) {
         stderrLastChunks = stderrLastChunks.slice(-2048)
       }
-      stderrParser(text)
+      // Log first 5 stderr chunks
+      if (stderrChunkCount <= 5) {
+        const preview = text.substring(0, 300).replace(/\r/g, "\\r").replace(/\n/g, "\\n")
+        console.log(`[handbrake] Task ${taskId} stderr chunk #${stderrChunkCount} (${chunk.length}B): ${preview}`)
+      }
+      stderrHandler(chunk)
     })
+
+    // Log that we're now waiting for data
+    if (!proc.stdout) {
+      console.error(`[handbrake] Task ${taskId}: WARNING - proc.stdout is null!`)
+    }
+    if (!proc.stderr) {
+      console.error(`[handbrake] Task ${taskId}: WARNING - proc.stderr is null!`)
+    }
+
+    // Diagnostic: log data receipt status after 10 seconds
+    setTimeout(() => {
+      if (this.activeJobs.has(taskId)) {
+        console.log(`[handbrake] Task ${taskId}: 10s diagnostic — stdout: ${stdoutChunkCount} chunks (${stdoutTotalBytes}B), stderr: ${stderrChunkCount} chunks (${stderrTotalBytes}B), progress_received: ${loggedFirstProgress}`)
+      }
+    }, 10000)
 
     proc.on("close", (code) => {
       this.activeJobs.delete(taskId)
