@@ -246,12 +246,16 @@ export function CreateTaskDialog({ onClose, onCreated }: CreateTaskDialogProps) 
                   <AudioTracks
                     value={options.audioTracks}
                     onChange={(audioTracks) => setOptions({ ...options, audioTracks })}
+                    allPassthrough={options.allAudioPassthrough ?? false}
+                    onAllPassthroughChange={(allAudioPassthrough) => setOptions({ ...options, allAudioPassthrough })}
                   />
                 )}
                 {activeTab === "subtitles" && (
                   <SubtitleTracks
                     value={options.subtitleTracks}
                     onChange={(subtitleTracks) => setOptions({ ...options, subtitleTracks })}
+                    allSubtitles={options.allSubtitles ?? false}
+                    onAllSubtitlesChange={(allSubtitles) => setOptions({ ...options, allSubtitles })}
                   />
                 )}
                 {activeTab === "filters" && (

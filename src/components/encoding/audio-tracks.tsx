@@ -43,10 +43,12 @@ const sampleRates = ["auto", "8000", "11025", "22050", "44100", "48000"]
 interface AudioTracksProps {
   value: AudioTrack[]
   onChange: (value: AudioTrack[]) => void
+  allPassthrough?: boolean
+  onAllPassthroughChange?: (value: boolean) => void
   disabled?: boolean
 }
 
-export function AudioTracks({ value, onChange, disabled = false }: AudioTracksProps) {
+export function AudioTracks({ value, onChange, allPassthrough = false, onAllPassthroughChange, disabled = false }: AudioTracksProps) {
   const addTrack = () => {
     onChange([
       ...value,
@@ -74,13 +76,40 @@ export function AudioTracks({ value, onChange, disabled = false }: AudioTracksPr
 
   return (
     <div className="space-y-4">
-      {value.length === 0 && (
+      {/* All passthrough toggle */}
+      {onAllPassthroughChange && (
+        <label className="flex items-center gap-3 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={allPassthrough}
+            onChange={(e) => onAllPassthroughChange(e.target.checked)}
+            disabled={disabled}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          <div>
+            <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
+              Pass through all audio tracks
+            </span>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              Copy all audio tracks from source without re-encoding
+            </p>
+          </div>
+        </label>
+      )}
+
+      {allPassthrough && (
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+          All audio tracks will be copied from the source file as-is (passthrough).
+        </p>
+      )}
+
+      {!allPassthrough && value.length === 0 && (
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
           No audio tracks configured.
         </p>
       )}
 
-      {value.map((track, index) => (
+      {!allPassthrough && value.map((track, index) => (
         <div
           key={index}
           className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
@@ -222,7 +251,7 @@ export function AudioTracks({ value, onChange, disabled = false }: AudioTracksPr
         </div>
       ))}
 
-      {!disabled && (
+      {!disabled && !allPassthrough && (
         <button
           onClick={addTrack}
           className="inline-flex items-center gap-2 rounded-md border border-dashed border-[hsl(var(--border))] px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]"

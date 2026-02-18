@@ -106,7 +106,9 @@ export interface ContainerOptions {
 export interface EncodingOptions {
   video: VideoOptions
   audioTracks: AudioTrack[]
+  allAudioPassthrough?: boolean
   subtitleTracks: SubtitleTrack[]
+  allSubtitles?: boolean
   filters: FilterOptions
   picture: PictureOptions
   container: ContainerOptions
@@ -133,7 +135,9 @@ export const DEFAULT_ENCODING_OPTIONS: EncodingOptions = {
       drc: 0,
     },
   ],
+  allAudioPassthrough: true,
   subtitleTracks: [],
+  allSubtitles: true,
   filters: {
     deinterlace: "off",
     denoise: "off",

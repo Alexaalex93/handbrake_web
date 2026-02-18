@@ -165,6 +165,10 @@ export default function TaskDetailPage() {
             onChange={(audioTracks) =>
               isEditable && setOptions({ ...options, audioTracks })
             }
+            allPassthrough={options.allAudioPassthrough ?? false}
+            onAllPassthroughChange={(allAudioPassthrough) =>
+              isEditable && setOptions({ ...options, allAudioPassthrough })
+            }
             disabled={!isEditable}
           />
         )}
@@ -173,6 +177,10 @@ export default function TaskDetailPage() {
             value={options.subtitleTracks}
             onChange={(subtitleTracks) =>
               isEditable && setOptions({ ...options, subtitleTracks })
+            }
+            allSubtitles={options.allSubtitles ?? false}
+            onAllSubtitlesChange={(allSubtitles) =>
+              isEditable && setOptions({ ...options, allSubtitles })
             }
             disabled={!isEditable}
           />

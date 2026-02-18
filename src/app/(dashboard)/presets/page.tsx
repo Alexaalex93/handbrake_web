@@ -135,10 +135,20 @@ function PresetDialog({
               <VideoSettings value={options.video} onChange={(video) => setOptions({ ...options, video })} />
             )}
             {activeTab === "audio" && (
-              <AudioTracks value={options.audioTracks} onChange={(audioTracks) => setOptions({ ...options, audioTracks })} />
+              <AudioTracks
+                value={options.audioTracks}
+                onChange={(audioTracks) => setOptions({ ...options, audioTracks })}
+                allPassthrough={options.allAudioPassthrough ?? false}
+                onAllPassthroughChange={(allAudioPassthrough) => setOptions({ ...options, allAudioPassthrough })}
+              />
             )}
             {activeTab === "subtitles" && (
-              <SubtitleTracks value={options.subtitleTracks} onChange={(subtitleTracks) => setOptions({ ...options, subtitleTracks })} />
+              <SubtitleTracks
+                value={options.subtitleTracks}
+                onChange={(subtitleTracks) => setOptions({ ...options, subtitleTracks })}
+                allSubtitles={options.allSubtitles ?? false}
+                onAllSubtitlesChange={(allSubtitles) => setOptions({ ...options, allSubtitles })}
+              />
             )}
             {activeTab === "filters" && (
               <FiltersPanel value={options.filters} onChange={(filters) => setOptions({ ...options, filters })} />

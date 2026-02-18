@@ -62,12 +62,16 @@ export function buildArgs(sourcePath: string, outputPath: string, options: Encod
   }
 
   // Audio tracks
-  if (options.audioTracks.length > 0) {
+  if (options.allAudioPassthrough) {
+    args.push("--all-audio", "-E", "copy")
+  } else if (options.audioTracks.length > 0) {
     buildAudioArgs(args, options.audioTracks)
   }
 
   // Subtitle tracks
-  if (options.subtitleTracks.length > 0) {
+  if (options.allSubtitles) {
+    args.push("--all-subtitles")
+  } else if (options.subtitleTracks.length > 0) {
     buildSubtitleArgs(args, options.subtitleTracks)
   }
 

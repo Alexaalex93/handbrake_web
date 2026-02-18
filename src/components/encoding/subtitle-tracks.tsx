@@ -6,10 +6,12 @@ import type { SubtitleTrack } from "@/types/handbrake"
 interface SubtitleTracksProps {
   value: SubtitleTrack[]
   onChange: (value: SubtitleTrack[]) => void
+  allSubtitles?: boolean
+  onAllSubtitlesChange?: (value: boolean) => void
   disabled?: boolean
 }
 
-export function SubtitleTracks({ value, onChange, disabled = false }: SubtitleTracksProps) {
+export function SubtitleTracks({ value, onChange, allSubtitles = false, onAllSubtitlesChange, disabled = false }: SubtitleTracksProps) {
   const addTrack = () => {
     onChange([
       ...value,
@@ -34,13 +36,40 @@ export function SubtitleTracks({ value, onChange, disabled = false }: SubtitleTr
 
   return (
     <div className="space-y-4">
-      {value.length === 0 && (
+      {/* All subtitles toggle */}
+      {onAllSubtitlesChange && (
+        <label className="flex items-center gap-3 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={allSubtitles}
+            onChange={(e) => onAllSubtitlesChange(e.target.checked)}
+            disabled={disabled}
+            className="h-4 w-4 accent-[hsl(var(--primary))]"
+          />
+          <div>
+            <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
+              Copy all subtitle tracks
+            </span>
+            <p className="text-xs text-[hsl(var(--muted-foreground))]">
+              Include all subtitle tracks from source without modification
+            </p>
+          </div>
+        </label>
+      )}
+
+      {allSubtitles && (
+        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+          All subtitle tracks will be copied from the source file.
+        </p>
+      )}
+
+      {!allSubtitles && value.length === 0 && (
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
           No subtitle tracks configured.
         </p>
       )}
 
-      {value.map((track, index) => (
+      {!allSubtitles && value.map((track, index) => (
         <div
           key={index}
           className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--background))] p-4"
@@ -118,7 +147,7 @@ export function SubtitleTracks({ value, onChange, disabled = false }: SubtitleTr
         </div>
       ))}
 
-      {!disabled && (
+      {!disabled && !allSubtitles && (
         <button
           onClick={addTrack}
           className="inline-flex items-center gap-2 rounded-md border border-dashed border-[hsl(var(--border))] px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:border-[hsl(var(--primary))] hover:text-[hsl(var(--primary))]"

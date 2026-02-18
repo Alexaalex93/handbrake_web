@@ -1,5 +1,6 @@
 "use client"
 
+import { useRef } from "react"
 import useSWR from "swr"
 import { Loader2, PlayCircle, Clock, Layers } from "lucide-react"
 import type { Task } from "@/types/task"
@@ -52,13 +53,38 @@ export function ActiveJobsCard() {
 
   const tasks = encodingTasks ?? []
 
-  // ── Overall queue progress ────────────────────────────────────────
-  // Total = queued + encoding tasks. Completed tasks move to history,
-  // so we track progress as: sum(encoding progress) / total remaining
-  const totalInQueue = (stats?.queued ?? 0) + (stats?.encoding ?? 0)
-  const sumEncodingProgress = tasks.reduce((sum, t) => sum + t.progress, 0)
-  const overallProgress = totalInQueue > 0 ? sumEncodingProgress / totalInQueue : 0
-  const overallPercent = Math.round(overallProgress * 100)
+  // ── Batch progress tracking ──────────────────────────────────────
+  // Track the batch as a fixed group. The bar only resets when the
+  // queue is completely empty and new tasks arrive.
+  const batchTotalRef = useRef(0)
+  const batchCompletedRef = useRef(0)
+
+  const currentActive = (stats?.queued ?? 0) + (stats?.encoding ?? 0)
+
+  if (currentActive === 0) {
+    // Queue empty — reset batch tracking
+    batchTotalRef.current = 0
+    batchCompletedRef.current = 0
+  } else if (batchTotalRef.current === 0) {
+    // New batch started
+    batchTotalRef.current = currentActive
+    batchCompletedRef.current = 0
+  } else if (currentActive > batchTotalRef.current - batchCompletedRef.current) {
+    // More tasks added while batch is running — expand the batch
+    batchTotalRef.current = batchCompletedRef.current + currentActive
+  } else {
+    // Tasks completed — update completed count
+    batchCompletedRef.current = batchTotalRef.current - currentActive
+  }
+
+  const batchTotal = batchTotalRef.current
+  const batchCompleted = batchCompletedRef.current
+
+  // Progress: completed tasks count as 1.0 each, active tasks use their progress
+  const completedProgress = batchCompleted
+  const activeProgress = tasks.reduce((sum, t) => sum + t.progress, 0)
+  const totalProgress = completedProgress + activeProgress
+  const overallPercent = batchTotal > 0 ? Math.round((totalProgress / batchTotal) * 100) : 0
 
   // Estimate total ETA: current task ETA + (remaining queued * avg time per task)
   // Simplified: just show max ETA of active tasks (parallel) + rough queue estimate
@@ -86,14 +112,14 @@ export function ActiveJobsCard() {
         </div>
       )}
 
-      {encodingTasks && tasks.length === 0 && (
+      {encodingTasks && tasks.length === 0 && currentActive === 0 && (
         <p className="py-8 text-center text-sm text-[hsl(var(--muted-foreground))]">
           No active encodes
         </p>
       )}
 
       {/* ── Overall Queue Progress Bar ───────────────────────────────── */}
-      {totalInQueue > 0 && (
+      {batchTotal > 0 && (
         <div className="mb-4 rounded-md bg-[hsl(var(--secondary))] p-3">
           <div className="mb-1.5 flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs text-[hsl(var(--muted-foreground))]">
@@ -102,7 +128,7 @@ export function ActiveJobsCard() {
             </div>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-[hsl(var(--muted-foreground))]">
-                {Math.floor(sumEncodingProgress)} of {totalInQueue}
+                {batchCompleted + Math.floor(activeProgress)} of {batchTotal}
               </span>
               <span className="font-mono font-medium text-[hsl(var(--primary))]">
                 {overallPercent}%
@@ -110,28 +136,33 @@ export function ActiveJobsCard() {
             </div>
           </div>
 
-          {/* Segmented progress bar */}
+          {/* Segmented progress bar — fixed segment count for the batch */}
           <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full">
-            {Array.from({ length: totalInQueue }, (_, i) => {
-              // Determine fill for this segment
-              // Segments 0..N-1 map to tasks: encoding tasks first, then queued
+            {Array.from({ length: batchTotal }, (_, i) => {
               let segmentFill = 0
-              if (i < tasks.length) {
-                // This segment corresponds to an encoding task
-                segmentFill = tasks[i].progress
+              if (i < batchCompleted) {
+                // Completed segment — fully filled
+                segmentFill = 1
+              } else if (i < batchCompleted + tasks.length) {
+                // Active encoding segment — show real progress
+                segmentFill = tasks[i - batchCompleted]?.progress ?? 0
               }
-              // Queued tasks have 0 fill (they come after encoding tasks)
+              // Queued segments remain at 0
 
               return (
                 <div
                   key={i}
                   className="relative flex-1 overflow-hidden bg-[hsl(var(--background))]"
                   style={{
-                    borderRadius: i === 0 ? "9999px 0 0 9999px" : i === totalInQueue - 1 ? "0 9999px 9999px 0" : "0",
+                    borderRadius: i === 0 ? "9999px 0 0 9999px" : i === batchTotal - 1 ? "0 9999px 9999px 0" : "0",
                   }}
                 >
                   <div
-                    className="h-full bg-[hsl(var(--primary))] transition-all duration-500"
+                    className={`h-full transition-all duration-500 ${
+                      i < batchCompleted
+                        ? "bg-[hsl(var(--primary))]/60"
+                        : "bg-[hsl(var(--primary))]"
+                    }`}
                     style={{ width: `${segmentFill * 100}%` }}
                   />
                 </div>
