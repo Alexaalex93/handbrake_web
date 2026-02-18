@@ -16,6 +16,8 @@ function rowToWatcher(row: any): WatchedFolder {
     outputDir: row.output_dir,
     outputPattern: row.output_pattern,
     minFileSize: row.min_file_size,
+    deleteSource: !!row.delete_source,
+    replaceSource: !!row.replace_source,
     lastScanAt: row.last_scan_at,
     createdAt: row.created_at,
   }
@@ -69,12 +71,15 @@ export async function PUT(
     const outputDir = body.outputDir !== undefined ? body.outputDir : existing.output_dir
     const outputPattern = body.outputPattern ?? existing.output_pattern
     const minFileSize = body.minFileSize ?? existing.min_file_size
+    const deleteSource = body.deleteSource !== undefined ? (body.deleteSource ? 1 : 0) : existing.delete_source
+    const replaceSource = body.replaceSource !== undefined ? (body.replaceSource ? 1 : 0) : existing.replace_source
 
     db.prepare(`
       UPDATE watched_folders SET path = ?, enabled = ?, recursive = ?, scan_interval = ?,
-        file_extensions = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?
+        file_extensions = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?,
+        delete_source = ?, replace_source = ?
       WHERE id = ?
-    `).run(path, enabled, recursive, scanInterval, fileExtensions, presetId, outputMode, outputDir, outputPattern, minFileSize, id)
+    `).run(path, enabled, recursive, scanInterval, fileExtensions, presetId, outputMode, outputDir, outputPattern, minFileSize, deleteSource, replaceSource, id)
 
     // Restart the watcher with new settings
     const watcherManager = getWatcherManager()

@@ -33,6 +33,8 @@ function AddWatcherDialog({
   const [outputDir, setOutputDir] = useState("")
   const [outputPattern, setOutputPattern] = useState("{name}_encoded.{ext}")
   const [presetId, setPresetId] = useState<number | null>(null)
+  const [deleteSource, setDeleteSource] = useState(false)
+  const [replaceSource, setReplaceSource] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [showBrowser, setShowBrowser] = useState(false)
@@ -65,6 +67,8 @@ function AddWatcherDialog({
           outputDir: outputMode === "fixed" ? outputDir : null,
           outputPattern,
           presetId,
+          deleteSource,
+          replaceSource,
         }),
       })
       if (!res.ok) {
@@ -135,6 +139,33 @@ function AddWatcherDialog({
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">After Encoding</label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                <input type="radio" name="watcherPostAction" value="keep"
+                  checked={!deleteSource && !replaceSource}
+                  onChange={() => { setDeleteSource(false); setReplaceSource(false) }}
+                  className="accent-[hsl(var(--primary))]" />
+                Keep original
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                <input type="radio" name="watcherPostAction" value="delete"
+                  checked={deleteSource && !replaceSource}
+                  onChange={() => { setDeleteSource(true); setReplaceSource(false) }}
+                  className="accent-[hsl(var(--primary))]" />
+                Delete original
+              </label>
+              <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                <input type="radio" name="watcherPostAction" value="replace"
+                  checked={replaceSource}
+                  onChange={() => { setDeleteSource(false); setReplaceSource(true) }}
+                  className="accent-[hsl(var(--primary))]" />
+                Replace original
+              </label>
+            </div>
           </div>
 
           <div>
@@ -324,6 +355,16 @@ export default function WatchersPage() {
                   <span>Output</span>
                   <span className="text-[hsl(var(--card-foreground))]">
                     {watcher.outputMode === "fixed" ? watcher.outputDir : "Beside source"}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>After encoding</span>
+                  <span className="text-[hsl(var(--card-foreground))]">
+                    {watcher.replaceSource
+                      ? "Replace original"
+                      : watcher.deleteSource
+                        ? "Delete original"
+                        : "Keep original"}
                   </span>
                 </div>
                 <div className="flex justify-between">

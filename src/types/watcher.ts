@@ -12,6 +12,8 @@ export interface WatchedFolder {
   outputDir: string | null
   outputPattern: string
   minFileSize: number
+  deleteSource: boolean
+  replaceSource: boolean
   lastScanAt: string | null
   createdAt: string
 }

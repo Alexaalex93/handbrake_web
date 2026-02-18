@@ -180,6 +180,18 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE tasks ADD COLUMN replace_source INTEGER NOT NULL DEFAULT 0")
   }
 
+  // Add delete/replace source to watched_folders
+  try {
+    db.prepare("SELECT delete_source FROM watched_folders LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE watched_folders ADD COLUMN delete_source INTEGER NOT NULL DEFAULT 0")
+  }
+  try {
+    db.prepare("SELECT replace_source FROM watched_folders LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE watched_folders ADD COLUMN replace_source INTEGER NOT NULL DEFAULT 0")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0

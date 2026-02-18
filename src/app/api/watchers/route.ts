@@ -16,6 +16,8 @@ function rowToWatcher(row: any): WatchedFolder {
     outputDir: row.output_dir,
     outputPattern: row.output_pattern,
     minFileSize: row.min_file_size,
+    deleteSource: !!row.delete_source,
+    replaceSource: !!row.replace_source,
     lastScanAt: row.last_scan_at,
     createdAt: row.created_at,
   }
@@ -69,10 +71,12 @@ export async function POST(request: NextRequest) {
     const outputDir = body.outputDir ?? null
     const outputPattern = body.outputPattern || "{name}_encoded.{ext}"
     const minFileSize = body.minFileSize ?? 0
+    const deleteSource = body.deleteSource ? 1 : 0
+    const replaceSource = body.replaceSource ? 1 : 0
 
     const result = db.prepare(`
-      INSERT INTO watched_folders (path, recursive, scan_interval, file_extensions, preset_id, output_mode, output_dir, output_pattern, min_file_size)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO watched_folders (path, recursive, scan_interval, file_extensions, preset_id, output_mode, output_dir, output_pattern, min_file_size, delete_source, replace_source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       body.path,
       recursive,
@@ -82,7 +86,9 @@ export async function POST(request: NextRequest) {
       body.outputMode,
       outputDir,
       outputPattern,
-      minFileSize
+      minFileSize,
+      deleteSource,
+      replaceSource
     )
 
     const watcherId = Number(result.lastInsertRowid)

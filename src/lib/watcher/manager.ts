@@ -108,11 +108,11 @@ class WatcherManager {
 
       const title = path.basename(file.filePath, path.extname(file.filePath))
 
-      // Create task
+      // Create task (inherit delete/replace source from watcher config)
       const result = db.prepare(`
-        INSERT INTO tasks (title, source_path, output_path, status, options_json, preset_id, watcher_id)
-        VALUES (?, ?, ?, 'queued', ?, ?, ?)
-      `).run(title, file.filePath, outputPath, JSON.stringify(options), watcher.preset_id, watcherId)
+        INSERT INTO tasks (title, source_path, output_path, status, options_json, preset_id, watcher_id, delete_source, replace_source)
+        VALUES (?, ?, ?, 'queued', ?, ?, ?, ?, ?)
+      `).run(title, file.filePath, outputPath, JSON.stringify(options), watcher.preset_id, watcherId, watcher.delete_source || 0, watcher.replace_source || 0)
 
       // Update scanned file status
       db.prepare(
