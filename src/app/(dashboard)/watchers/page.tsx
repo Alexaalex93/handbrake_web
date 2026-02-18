@@ -33,6 +33,7 @@ function AddWatcherDialog({
   const [outputDir, setOutputDir] = useState("")
   const [outputPattern, setOutputPattern] = useState("{name}_encoded.{ext}")
   const [presetId, setPresetId] = useState<number | null>(null)
+  const [codecFilter, setCodecFilter] = useState<string[]>([])
   const [deleteSource, setDeleteSource] = useState(false)
   const [replaceSource, setReplaceSource] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -67,6 +68,7 @@ function AddWatcherDialog({
           outputDir: outputMode === "fixed" ? outputDir : null,
           outputPattern,
           presetId,
+          codecFilter: codecFilter.join(","),
           deleteSource,
           replaceSource,
         }),
@@ -128,6 +130,32 @@ function AddWatcherDialog({
             <input type="text" value={fileExtensions} onChange={(e) => setFileExtensions(e.target.value)}
               placeholder=".mkv,.mp4,.avi"
               className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]" />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Codec Filter</label>
+            <p className="mb-2 text-xs text-[hsl(var(--muted-foreground))]">
+              Only pick up files with these video codecs. Leave unchecked for all.
+            </p>
+            <div className="flex flex-wrap gap-x-3 gap-y-1.5">
+              {["H.264", "H.265", "AV1", "VP9", "VP8", "MPEG-2", "MPEG-4", "VC-1"].map((codec) => (
+                <label key={codec} className="flex items-center gap-1.5 text-sm text-[hsl(var(--card-foreground))]">
+                  <input
+                    type="checkbox"
+                    checked={codecFilter.includes(codec)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setCodecFilter([...codecFilter, codec])
+                      } else {
+                        setCodecFilter(codecFilter.filter((c) => c !== codec))
+                      }
+                    }}
+                    className="accent-[hsl(var(--primary))]"
+                  />
+                  {codec}
+                </label>
+              ))}
+            </div>
           </div>
 
           <div>
@@ -351,6 +379,14 @@ export default function WatchersPage() {
                     {watcher.fileExtensions || "All"}
                   </span>
                 </div>
+                {watcher.codecFilter && (
+                  <div className="flex justify-between">
+                    <span>Codec filter</span>
+                    <span className="text-[hsl(var(--card-foreground))]">
+                      {watcher.codecFilter}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Output</span>
                   <span className="text-[hsl(var(--card-foreground))]">

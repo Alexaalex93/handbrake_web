@@ -2,6 +2,7 @@ import { getDb } from "@/lib/db"
 import { scanDirectory } from "./scanner"
 import { emitEvent } from "@/lib/events/emitter"
 import { resolveOutputPath } from "@/lib/utils"
+import { probeMediaFile } from "@/lib/media-probe"
 import type { EncodingOptions } from "@/types/handbrake"
 import { DEFAULT_ENCODING_OPTIONS } from "@/types/handbrake"
 import path from "path"
@@ -56,6 +57,10 @@ class WatcherManager {
       .map((e: string) => e.trim().toLowerCase())
       .filter((e: string) => e.startsWith(".") ? e : `.${e}`)
 
+    const codecFilterList = watcher.codec_filter
+      ? watcher.codec_filter.split(",").map((c: string) => c.trim()).filter(Boolean)
+      : []
+
     const files = scanDirectory(
       watcher.path,
       extensions,
@@ -79,6 +84,26 @@ class WatcherManager {
           ).run(file.fileSize, file.fileMtime, existing.id)
         }
         continue
+      }
+
+      // Codec filter: probe the file and skip if codec doesn't match
+      if (codecFilterList.length > 0) {
+        try {
+          const mediaInfo = probeMediaFile(file.filePath)
+          if (!mediaInfo.videoCodec || !codecFilterList.includes(mediaInfo.videoCodec)) {
+            console.log(`[watcher] Skipped ${path.basename(file.filePath)}: codec ${mediaInfo.videoCodec || "unknown"} not in filter [${codecFilterList.join(", ")}]`)
+            db.prepare(
+              "INSERT INTO scanned_files (watcher_id, file_path, file_size, file_mtime, status) VALUES (?, ?, ?, ?, 'skipped')"
+            ).run(watcherId, file.filePath, file.fileSize, file.fileMtime)
+            continue
+          }
+        } catch {
+          console.log(`[watcher] Skipped ${path.basename(file.filePath)}: failed to probe codec`)
+          db.prepare(
+            "INSERT INTO scanned_files (watcher_id, file_path, file_size, file_mtime, status) VALUES (?, ?, ?, ?, 'skipped')"
+          ).run(watcherId, file.filePath, file.fileSize, file.fileMtime)
+          continue
+        }
       }
 
       // New file detected

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getDb } from "@/lib/db"
 import { getQueueManager } from "@/lib/queue/manager"
+import { emitEvent } from "@/lib/events/emitter"
 import { DEFAULT_ENCODING_OPTIONS } from "@/types/handbrake"
 import type { EncodingOptions } from "@/types/handbrake"
 import path from "path"
@@ -108,6 +109,43 @@ export async function POST(request: NextRequest) {
     console.error("POST /api/tasks/batch error:", error)
     return NextResponse.json(
       { error: "Failed to create batch tasks" },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE() {
+  try {
+    const db = getDb()
+    const queueManager = getQueueManager()
+
+    // Cancel all active/paused encodes
+    const activeTasks = db.prepare(
+      "SELECT id FROM tasks WHERE status IN ('encoding', 'paused')"
+    ).all() as { id: number }[]
+
+    for (const task of activeTasks) {
+      queueManager.cancelTask(task.id)
+    }
+
+    // Count and delete all tasks
+    const countResult = db.prepare("SELECT COUNT(*) as count FROM tasks").get() as { count: number }
+    const totalDeleted = countResult.count
+
+    db.prepare("DELETE FROM tasks").run()
+
+    emitEvent({ type: "queue:changed" })
+
+    console.log(`[handbrake] Batch: cleared ${totalDeleted} task(s) from queue`)
+
+    return NextResponse.json({
+      success: true,
+      deleted: totalDeleted,
+    })
+  } catch (error) {
+    console.error("DELETE /api/tasks/batch error:", error)
+    return NextResponse.json(
+      { error: "Failed to clear queue" },
       { status: 500 }
     )
   }

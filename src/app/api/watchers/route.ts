@@ -11,6 +11,7 @@ function rowToWatcher(row: any): WatchedFolder {
     recursive: !!row.recursive,
     scanInterval: row.scan_interval,
     fileExtensions: row.file_extensions,
+    codecFilter: row.codec_filter || "",
     presetId: row.preset_id,
     outputMode: row.output_mode,
     outputDir: row.output_dir,
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
     const recursive = body.recursive !== undefined ? (body.recursive ? 1 : 0) : 1
     const scanInterval = body.scanInterval ?? 60
     const fileExtensions = body.fileExtensions || ".mkv,.mp4,.avi,.mov,.wmv,.flv,.ts,.m4v,.webm"
+    const codecFilter = body.codecFilter || ""
     const presetId = body.presetId ?? null
     const outputDir = body.outputDir ?? null
     const outputPattern = body.outputPattern || "{name}_encoded.{ext}"
@@ -75,13 +77,14 @@ export async function POST(request: NextRequest) {
     const replaceSource = body.replaceSource ? 1 : 0
 
     const result = db.prepare(`
-      INSERT INTO watched_folders (path, recursive, scan_interval, file_extensions, preset_id, output_mode, output_dir, output_pattern, min_file_size, delete_source, replace_source)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO watched_folders (path, recursive, scan_interval, file_extensions, codec_filter, preset_id, output_mode, output_dir, output_pattern, min_file_size, delete_source, replace_source)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       body.path,
       recursive,
       scanInterval,
       fileExtensions,
+      codecFilter,
       presetId,
       body.outputMode,
       outputDir,

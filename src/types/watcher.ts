@@ -7,6 +7,7 @@ export interface WatchedFolder {
   recursive: boolean
   scanInterval: number  // minutes
   fileExtensions: string
+  codecFilter: string
   presetId: number | null
   outputMode: OutputMode
   outputDir: string | null

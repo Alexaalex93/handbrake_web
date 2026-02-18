@@ -11,6 +11,7 @@ function rowToWatcher(row: any): WatchedFolder {
     recursive: !!row.recursive,
     scanInterval: row.scan_interval,
     fileExtensions: row.file_extensions,
+    codecFilter: row.codec_filter || "",
     presetId: row.preset_id,
     outputMode: row.output_mode,
     outputDir: row.output_dir,
@@ -66,6 +67,7 @@ export async function PUT(
     const recursive = body.recursive !== undefined ? (body.recursive ? 1 : 0) : existing.recursive
     const scanInterval = body.scanInterval ?? existing.scan_interval
     const fileExtensions = body.fileExtensions ?? existing.file_extensions
+    const codecFilter = body.codecFilter !== undefined ? body.codecFilter : (existing.codec_filter || "")
     const presetId = body.presetId !== undefined ? body.presetId : existing.preset_id
     const outputMode = body.outputMode ?? existing.output_mode
     const outputDir = body.outputDir !== undefined ? body.outputDir : existing.output_dir
@@ -76,10 +78,10 @@ export async function PUT(
 
     db.prepare(`
       UPDATE watched_folders SET path = ?, enabled = ?, recursive = ?, scan_interval = ?,
-        file_extensions = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?,
+        file_extensions = ?, codec_filter = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?,
         delete_source = ?, replace_source = ?
       WHERE id = ?
-    `).run(path, enabled, recursive, scanInterval, fileExtensions, presetId, outputMode, outputDir, outputPattern, minFileSize, deleteSource, replaceSource, id)
+    `).run(path, enabled, recursive, scanInterval, fileExtensions, codecFilter, presetId, outputMode, outputDir, outputPattern, minFileSize, deleteSource, replaceSource, id)
 
     // Restart the watcher with new settings
     const watcherManager = getWatcherManager()
