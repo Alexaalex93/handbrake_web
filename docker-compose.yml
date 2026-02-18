@@ -13,8 +13,8 @@
 
 services:
   handbrake-web:
-    build: .
-    image: alex/handbrake-web:latest
+    image: alexaalex93/handbrake-web:latest
+    # build: .   # Uncomment to build locally instead of pulling from DockerHub
     container_name: handbrake-web
     ports:
       - "3000:3000"

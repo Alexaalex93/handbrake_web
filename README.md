@@ -177,24 +177,19 @@ npm start
 ### Docker
 
 ```bash
-# CPU only
-docker compose up -d
-
-# With NVIDIA GPU support
-# 1. Uncomment the GPU section in docker-compose.yml
-# 2. Ensure nvidia-container-toolkit is installed
+# Pull and run
+docker pull alexaalex93/handbrake-web:latest
 docker compose up -d
 ```
 
 The container includes HandBrakeCLI and ffmpeg/ffprobe pre-installed.
 
-#### Docker Compose
+#### Docker Compose (CPU only)
 
 ```yaml
 services:
   handbrake-web:
-    build: .
-    image: alex/handbrake-web:latest
+    image: alexaalex93/handbrake-web:latest
     container_name: handbrake-web
     ports:
       - "3000:3000"
@@ -207,22 +202,54 @@ volumes:
   handbrake-data:
 ```
 
+#### Docker Compose (NVIDIA GPU)
+
+Requires [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html) installed on the host.
+
+```yaml
+services:
+  handbrake-web:
+    image: alexaalex93/handbrake-web:latest
+    container_name: handbrake-web
+    ports:
+      - "3000:3000"
+    volumes:
+      - handbrake-data:/app/data
+      - /path/to/your/media:/media
+    environment:
+      - NODE_ENV=production
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu, video, compute]
+    restart: unless-stopped
+
+volumes:
+  handbrake-data:
+```
+
+Then select `nvenc_h264` or `nvenc_h265` as the video encoder when creating tasks.
+
 #### Unraid Deployment
 
 ```bash
-# SSH into your Unraid server
-cd /mnt/user/appdata
-git clone https://github.com/Alexaalex93/handbrake_web.git handbrake-web
-cd handbrake-web
+# SSH into your Unraid server or use the built-in terminal
+mkdir -p /mnt/user/appdata/handbrake-web
+cd /mnt/user/appdata/handbrake-web
 
-# Edit docker-compose.yml to map your media shares:
+# Create docker-compose.yml (see examples above) and adjust volumes:
 # volumes:
 #   - handbrake-data:/app/data
 #   - /mnt/user/media/peliculas:/media/peliculas
 #   - /mnt/user/media/series:/media/series
 
-# Build and start
-docker compose up -d --build
+# Pull and start
+docker compose up -d
 
 # Access at http://YOUR-NAS-IP:3000
 ```
@@ -232,17 +259,9 @@ When creating a library in the web UI, use the container paths (e.g., `/media/pe
 To update:
 ```bash
 cd /mnt/user/appdata/handbrake-web
-git pull
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 ```
-
-#### NVIDIA GPU Encoding
-
-To enable hardware-accelerated encoding with NVENC:
-
-1. Install [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-2. Uncomment the GPU section in `docker-compose.yml`
-3. Select `nvenc_h264` or `nvenc_h265` as the video encoder when creating tasks
 
 ---
 
