@@ -226,13 +226,19 @@ class QueueManager {
           fileSize = stat.size
         } catch {}
 
+        // Capture source file size BEFORE any post-encode operations (delete/replace)
+        let sourceSizeIn = 0
+        const taskRow = db.prepare("SELECT delete_source, replace_source, source_path, output_path FROM tasks WHERE id = ?").get(taskId) as any
+        if (taskRow) {
+          try { sourceSizeIn = fs.statSync(taskRow.source_path).size } catch {}
+        }
+
         db.prepare(`
-          UPDATE tasks SET status = 'completed', progress = 1, completed_at = datetime('now'), file_size = ?
+          UPDATE tasks SET status = 'completed', progress = 1, completed_at = datetime('now'), file_size = ?, file_size_in = ?
           WHERE id = ?
-        `).run(fileSize, taskId)
+        `).run(fileSize, sourceSizeIn, taskId)
 
         // Post-encode file operations
-        const taskRow = db.prepare("SELECT delete_source, replace_source, source_path, output_path FROM tasks WHERE id = ?").get(taskId) as any
         if (taskRow && fileSize > 0) {
           if (taskRow.replace_source) {
             // Replace source: delete original, rename output to original name
@@ -331,8 +337,11 @@ class QueueManager {
     const task = db.prepare("SELECT * FROM tasks WHERE id = ?").get(taskId) as any
     if (!task) return
 
-    let fileSizeIn = 0
-    try { fileSizeIn = fs.statSync(task.source_path).size } catch {}
+    // Use pre-captured source size if available, fall back to reading file
+    let fileSizeIn = task.file_size_in || 0
+    if (!fileSizeIn) {
+      try { fileSizeIn = fs.statSync(task.source_path).size } catch {}
+    }
 
     let presetName: string | null = null
     if (task.preset_id) {

@@ -199,6 +199,13 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE watched_folders ADD COLUMN codec_filter TEXT NOT NULL DEFAULT ''")
   }
 
+  // Add file_size_in to tasks (captures source size before replace/delete)
+  try {
+    db.prepare("SELECT file_size_in FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN file_size_in INTEGER NOT NULL DEFAULT 0")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0
