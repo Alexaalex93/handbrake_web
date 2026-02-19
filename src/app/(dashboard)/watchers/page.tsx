@@ -10,6 +10,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Trash2,
+  Library,
   X,
 } from "lucide-react"
 import { FileBrowser } from "@/components/shared/file-browser"
@@ -273,6 +274,7 @@ export default function WatchersPage() {
   )
   const [scanningId, setScanningId] = useState<number | null>(null)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [creatingLibId, setCreatingLibId] = useState<number | null>(null)
   const [showAdd, setShowAdd] = useState(false)
 
   const watchers = Array.isArray(data) ? data : []
@@ -303,6 +305,32 @@ export default function WatchersPage() {
       mutate()
     } finally {
       setDeletingId(null)
+    }
+  }
+
+  const handleCreateLibrary = async (watcher: WatchedFolder) => {
+    setCreatingLibId(watcher.id)
+    try {
+      const pathParts = watcher.path.replace(/[\\/]+$/, "").split(/[\\/]/)
+      const name = pathParts[pathParts.length - 1] || watcher.path
+      const res = await fetch("/api/libraries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          path: watcher.path,
+          recursive: watcher.recursive,
+          fileExtensions: watcher.fileExtensions,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || "Failed to create library")
+      }
+    } catch {
+      alert("Failed to create library")
+    } finally {
+      setCreatingLibId(null)
     }
   }
 
@@ -348,6 +376,18 @@ export default function WatchersPage() {
                   </p>
                 </div>
                 <div className="ml-2 flex items-center gap-1">
+                  <button
+                    onClick={() => handleCreateLibrary(watcher)}
+                    disabled={creatingLibId === watcher.id}
+                    title="Add as Library"
+                    className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--primary))]"
+                  >
+                    {creatingLibId === watcher.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Library className="h-4 w-4" />
+                    )}
+                  </button>
                   <button
                     onClick={() => handleToggle(watcher.id, watcher.enabled)}
                     title={watcher.enabled ? "Disable" : "Enable"}

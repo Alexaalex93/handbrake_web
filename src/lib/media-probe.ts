@@ -80,7 +80,7 @@ function findFfprobe(): string | null {
 }
 
 /** Find HandBrakeCLI binary */
-function findHandBrake(): string | null {
+export function findHandBrake(): string | null {
   if (_handBrakePath !== undefined) return _handBrakePath
 
   try {

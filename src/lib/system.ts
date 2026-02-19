@@ -1,6 +1,6 @@
 import os from "os"
 import { execSync } from "child_process"
-import { getHandBrakePath } from "@/lib/handbrake/cli"
+import { findHandBrake } from "@/lib/media-probe"
 
 export function getSystemStats() {
   const cpus = os.cpus()
@@ -101,12 +101,15 @@ export function getDiskStats(targetPath?: string): { free: number; total: number
 
 export function getHandBrakeVersion(): string {
   const now = Date.now()
-  if (_cache.hbVersion && now - _cache.hbVersionTime < HB_VERSION_CACHE_TTL) {
+  if (_cache.hbVersion && _cache.hbVersion !== "Not found" && now - _cache.hbVersionTime < HB_VERSION_CACHE_TTL) {
     return _cache.hbVersion
   }
 
   try {
-    const hbPath = getHandBrakePath()
+    const hbPath = findHandBrake()
+    if (!hbPath) {
+      return "Not found"
+    }
     const output = execSync(`"${hbPath}" --version 2>&1`, {
       encoding: "utf-8",
       timeout: 5000,
@@ -117,8 +120,6 @@ export function getHandBrakeVersion(): string {
     _cache.hbVersionTime = now
     return _cache.hbVersion
   } catch {
-    _cache.hbVersion = "Not found"
-    _cache.hbVersionTime = now
-    return _cache.hbVersion
+    return "Not found"
   }
 }

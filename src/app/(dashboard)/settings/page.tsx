@@ -26,8 +26,9 @@ export default function SettingsPage() {
     handbrakeVersion: string
     platform: string
     hostname: string
+    serverTime: string
     tools: { ffprobe: boolean; handbrake: boolean }
-  }>("/api/system", fetcher)
+  }>("/api/system", fetcher, { refreshInterval: 30000 })
 
   const [settings, setSettings] = useState({
     handbrake_path: "HandBrakeCLI",
@@ -380,6 +381,12 @@ export default function SettingsPage() {
                     })}
                   </div>
                 </div>
+              )}
+
+              {systemData?.serverTime && (
+                <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                  Server time: {new Date(systemData.serverTime).toLocaleTimeString()} &mdash; Set <code className="rounded bg-[hsl(var(--secondary))] px-1">TZ</code> env var in Docker if this doesn&apos;t match your local time.
+                </p>
               )}
             </>
           )}

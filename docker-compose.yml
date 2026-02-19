@@ -27,6 +27,7 @@ services:
       # - /mnt/user/media/encoded:/media/encoded
     environment:
       - NODE_ENV=production
+      - TZ=${TZ:-UTC}   # Set your timezone, e.g. TZ=Europe/Madrid
     # --- Uncomment below for NVIDIA GPU encoding ---
     # environment:
     #   - NODE_ENV=production

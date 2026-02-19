@@ -18,8 +18,10 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  FolderSearch,
 } from "lucide-react"
 import type { LibraryItem } from "@/types/library"
+import type { Preset } from "@/types/preset"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -78,6 +80,16 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [batchPresetId, setBatchPresetId] = useState<number | null>(null)
   const [batchReplaceSource, setBatchReplaceSource] = useState(false)
   const [batchDeleteSource, setBatchDeleteSource] = useState(false)
+  const [showWatcherDialog, setShowWatcherDialog] = useState(false)
+  const [watcherSaving, setWatcherSaving] = useState(false)
+  const [watcherPresetId, setWatcherPresetId] = useState<number | null>(null)
+  const [watcherInterval, setWatcherInterval] = useState(60)
+  const [watcherOutputMode, setWatcherOutputMode] = useState<"fixed" | "beside_source">("beside_source")
+  const [watcherOutputDir, setWatcherOutputDir] = useState("")
+  const [watcherOutputPattern, setWatcherOutputPattern] = useState("{name}_encoded.{ext}")
+  const [watcherDeleteSource, setWatcherDeleteSource] = useState(false)
+  const [watcherReplaceSource, setWatcherReplaceSource] = useState(false)
+  const [watcherError, setWatcherError] = useState("")
 
   const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString(), sort: sortBy, order: sortOrder })
   if (codecFilter !== "all") queryParams.set("codec", codecFilter)
@@ -88,8 +100,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     fetcher
   )
 
-  const { data: presetsData } = useSWR("/api/presets", fetcher)
-  const presets: { id: number; name: string }[] = presetsData ?? []
+  const { data: presetsData } = useSWR<Preset[]>("/api/presets", fetcher)
+  const presets = Array.isArray(presetsData) ? presetsData : []
 
   // Check if there's an ongoing probe when we first load
   useEffect(() => {
@@ -261,6 +273,41 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  const handleCreateWatcher = async () => {
+    if (!library) return
+    setWatcherSaving(true)
+    setWatcherError("")
+    try {
+      const res = await fetch("/api/watchers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: library.path,
+          recursive: library.recursive,
+          scanInterval: watcherInterval,
+          fileExtensions: library.fileExtensions,
+          outputMode: watcherOutputMode,
+          outputDir: watcherOutputMode === "fixed" ? watcherOutputDir : null,
+          outputPattern: watcherOutputPattern,
+          presetId: watcherPresetId,
+          codecFilter: codecFilter !== "all" ? codecFilter : "",
+          deleteSource: watcherDeleteSource,
+          replaceSource: watcherReplaceSource,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setWatcherError(data.error || "Failed to create watcher")
+        return
+      }
+      setShowWatcherDialog(false)
+    } catch {
+      setWatcherError("Failed to create watcher")
+    } finally {
+      setWatcherSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -273,6 +320,20 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-sm text-[hsl(var(--muted-foreground))]">{library?.path}</p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => {
+              setWatcherPresetId(null)
+              setWatcherDeleteSource(false)
+              setWatcherReplaceSource(false)
+              setWatcherError("")
+              setShowWatcherDialog(true)
+            }}
+            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
+            title={`Create a watcher for this path${codecFilter !== "all" ? ` filtering ${codecFilter}` : ""}`}
+          >
+            <FolderSearch className="h-4 w-4" />
+            Create Watcher
+          </button>
           <button
             onClick={() => handleScan(false)}
             disabled={scanning || isProbing}
@@ -647,6 +708,140 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               >
                 {addingToQueue ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
                 Add {selectedMap.size} to Queue
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Watcher dialog */}
+      {showWatcherDialog && library && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60"
+          onMouseDown={(e) => e.target === e.currentTarget && setShowWatcherDialog(false)}>
+          <div className="mx-4 w-full max-w-md rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6 shadow-2xl"
+            onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[hsl(var(--card-foreground))]">
+                Create Watcher
+              </h3>
+              <button onClick={() => setShowWatcherDialog(false)} className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">Path</span>
+                  <span className="font-mono text-[hsl(var(--card-foreground))]">{library.path}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">Recursive</span>
+                  <span className="text-[hsl(var(--card-foreground))]">{library.recursive ? "Yes" : "No"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[hsl(var(--muted-foreground))]">Extensions</span>
+                  <span className="text-[hsl(var(--card-foreground))]">{library.fileExtensions}</span>
+                </div>
+                {codecFilter !== "all" && (
+                  <div className="flex justify-between">
+                    <span className="text-[hsl(var(--muted-foreground))]">Codec filter</span>
+                    <span className="text-[hsl(var(--card-foreground))]">{codecFilter}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Scan Interval (min)</label>
+                <input type="number" value={watcherInterval} onChange={(e) => setWatcherInterval(Number(e.target.value))} min={1}
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Preset</label>
+                <select value={watcherPresetId ?? ""} onChange={(e) => setWatcherPresetId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]">
+                  <option value="">Default settings</option>
+                  {presets.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">After Encoding</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input type="radio" name="watcherPostAction" value="keep"
+                      checked={!watcherDeleteSource && !watcherReplaceSource}
+                      onChange={() => { setWatcherDeleteSource(false); setWatcherReplaceSource(false) }}
+                      className="accent-[hsl(var(--primary))]" />
+                    Keep
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input type="radio" name="watcherPostAction" value="delete"
+                      checked={watcherDeleteSource && !watcherReplaceSource}
+                      onChange={() => { setWatcherDeleteSource(true); setWatcherReplaceSource(false) }}
+                      className="accent-[hsl(var(--primary))]" />
+                    Delete
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input type="radio" name="watcherPostAction" value="replace"
+                      checked={watcherReplaceSource}
+                      onChange={() => { setWatcherDeleteSource(false); setWatcherReplaceSource(true) }}
+                      className="accent-[hsl(var(--primary))]" />
+                    Replace
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">Output</label>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input type="radio" name="watcherOutputLoc" value="beside_source"
+                      checked={watcherOutputMode === "beside_source"}
+                      onChange={() => setWatcherOutputMode("beside_source")}
+                      className="accent-[hsl(var(--primary))]" />
+                    Beside source
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input type="radio" name="watcherOutputLoc" value="fixed"
+                      checked={watcherOutputMode === "fixed"}
+                      onChange={() => setWatcherOutputMode("fixed")}
+                      className="accent-[hsl(var(--primary))]" />
+                    Fixed directory
+                  </label>
+                </div>
+              </div>
+
+              {watcherOutputMode === "fixed" && (
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Output Directory</label>
+                  <input type="text" value={watcherOutputDir} onChange={(e) => setWatcherOutputDir(e.target.value)}
+                    placeholder="/media/output"
+                    className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]" />
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Output Pattern</label>
+                <input type="text" value={watcherOutputPattern} onChange={(e) => setWatcherOutputPattern(e.target.value)}
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+              </div>
+
+              {watcherError && <p className="text-sm text-[hsl(var(--destructive))]">{watcherError}</p>}
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button onClick={() => setShowWatcherDialog(false)}
+                className="rounded-md border border-[hsl(var(--border))] px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
+                Cancel
+              </button>
+              <button onClick={handleCreateWatcher} disabled={watcherSaving}
+                className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50">
+                {watcherSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderSearch className="h-4 w-4" />}
+                Create Watcher
               </button>
             </div>
           </div>

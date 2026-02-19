@@ -43,10 +43,13 @@ function isWithinTimeWindow(
   const startMinutes = startH * 60 + startM
   const endMinutes = endH * 60 + endM
 
+  // Same start and end = full 24 hours (always allowed)
+  if (startMinutes === endMinutes) return true
+
   // Handle overnight windows (e.g., 22:00 - 06:00)
   if (startMinutes > endMinutes) {
-    return currentMinutes >= startMinutes || currentMinutes < endMinutes
+    return currentMinutes >= startMinutes || currentMinutes <= endMinutes
   }
 
-  return currentMinutes >= startMinutes && currentMinutes < endMinutes
+  return currentMinutes >= startMinutes && currentMinutes <= endMinutes
 }

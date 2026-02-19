@@ -27,6 +27,7 @@ export async function GET() {
       },
       platform: system.platform,
       hostname: system.hostname,
+      serverTime: new Date().toISOString(),
       handbrakeVersion,
       tools: {
         ffprobe: probeStatus.ffprobe,
