@@ -215,6 +215,10 @@ function probeWithHandBrake(hbPath: string, filePath: string): MediaInfo {
 }
 
 /** Normalize video codec names to human-readable short names */
+export function normalizeCodec(codec: string | null | undefined): string | null {
+  return normalizeCodecName(codec)
+}
+
 function normalizeCodecName(codec: string | null | undefined): string | null {
   if (!codec) return null
   const c = codec.toLowerCase()

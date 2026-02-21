@@ -70,9 +70,9 @@ export default function HistoryPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">History</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <select
             value={statusFilter}
             onChange={(e) => {
@@ -88,10 +88,10 @@ export default function HistoryPage() {
           </select>
           <button
             onClick={handleClearHistory}
-            className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--destructive))] px-4 py-2 text-sm text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive-foreground))] transition-colors"
+            className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--destructive))] px-3 py-2 text-sm text-[hsl(var(--destructive))] hover:bg-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive-foreground))] transition-colors"
           >
             <Trash2 className="h-4 w-4" />
-            Clear History
+            <span className="hidden sm:inline">Clear History</span>
           </button>
         </div>
       </div>
@@ -110,13 +110,13 @@ export default function HistoryPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[hsl(var(--border))]">
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Title</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Status</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Duration</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size In</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size Out</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Ratio</th>
-                  <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Date</th>
+                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Title</th>
+                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Status</th>
+                  <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] md:table-cell">Duration</th>
+                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size In</th>
+                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size Out</th>
+                  <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] sm:table-cell">Ratio</th>
+                  <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] lg:table-cell">Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -131,27 +131,27 @@ export default function HistoryPage() {
                       key={item.id}
                       className="border-b border-[hsl(var(--border))] last:border-b-0 hover:bg-[hsl(var(--accent))]/50"
                     >
-                      <td className="max-w-[200px] truncate px-4 py-3 font-medium text-[hsl(var(--card-foreground))]">
+                      <td className="max-w-[200px] truncate px-3 py-3 font-medium text-[hsl(var(--card-foreground))]">
                         {item.title}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-3 py-3">
                         <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cfg.classes}`}>
                           {cfg.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                      <td className="hidden px-3 py-3 text-[hsl(var(--muted-foreground))] md:table-cell">
                         {formatDuration(item.encodingTime)}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[hsl(var(--muted-foreground))]">
+                      <td className="px-3 py-3 font-mono text-[hsl(var(--muted-foreground))]">
                         {formatSize(item.fileSizeIn)}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[hsl(var(--muted-foreground))]">
+                      <td className="px-3 py-3 font-mono text-[hsl(var(--muted-foreground))]">
                         {formatSize(item.fileSizeOut)}
                       </td>
-                      <td className="px-4 py-3 font-mono text-[hsl(var(--muted-foreground))]">
+                      <td className="hidden px-3 py-3 font-mono text-[hsl(var(--muted-foreground))] sm:table-cell">
                         {ratio}
                       </td>
-                      <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                      <td className="hidden px-3 py-3 text-[hsl(var(--muted-foreground))] lg:table-cell">
                         {new Date(item.completedAt).toLocaleDateString()}
                       </td>
                     </tr>

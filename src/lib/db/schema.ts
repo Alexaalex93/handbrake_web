@@ -206,6 +206,13 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE tasks ADD COLUMN file_size_in INTEGER NOT NULL DEFAULT 0")
   }
 
+  // Add day_schedules JSON column to schedule
+  try {
+    db.prepare("SELECT day_schedules FROM schedule LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE schedule ADD COLUMN day_schedules TEXT DEFAULT NULL")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0

@@ -115,7 +115,9 @@ export function getHandBrakeVersion(): string {
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
     })
-    const match = output.match(/HandBrake\s+(\S+)/)
+    // Match version number specifically (e.g. "HandBrake 1.7.3") to avoid
+    // matching debug lines like "HandBrake has been compiled with..."
+    const match = output.match(/HandBrake\s+(\d+\.\d+[\.\d]*)/)
     _cache.hbVersion = match ? match[1] : "Unknown"
     _cache.hbVersionTime = now
     return _cache.hbVersion

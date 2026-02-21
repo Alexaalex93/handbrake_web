@@ -24,6 +24,10 @@ interface SystemInfo {
   platform: string
   hostname: string
   handbrakeVersion: string
+  tools: {
+    ffprobe: boolean
+    handbrake: boolean
+  }
 }
 
 function bytesToGB(bytes: number): number {
@@ -107,15 +111,28 @@ export function SystemStatsCard() {
           />
 
           {data && (
-            <div className="space-y-1 border-t border-[hsl(var(--border))] pt-2">
+            <div className="space-y-2 border-t border-[hsl(var(--border))] pt-3">
               <p className="text-xs text-[hsl(var(--muted-foreground))]">
                 {data.hostname} &middot; {data.cpu?.count ?? 0} cores &middot; {data.platform}
               </p>
-              {data.handbrakeVersion && (
-                <p className="text-xs text-[hsl(var(--muted-foreground))]">
-                  HandBrake: {data.handbrakeVersion}
-                </p>
-              )}
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  data.tools?.handbrake
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${data.tools?.handbrake ? "bg-green-400" : "bg-red-400"}`} />
+                  HandBrake {data.tools?.handbrake ? data.handbrakeVersion || "" : "Not found"}
+                </span>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  data.tools?.ffprobe
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-red-500/20 text-red-400"
+                }`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${data.tools?.ffprobe ? "bg-green-400" : "bg-red-400"}`} />
+                  ffprobe {data.tools?.ffprobe ? "" : "Not found"}
+                </span>
+              </div>
             </div>
           )}
         </div>

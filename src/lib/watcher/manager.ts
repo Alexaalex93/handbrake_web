@@ -2,7 +2,7 @@ import { getDb } from "@/lib/db"
 import { scanDirectory } from "./scanner"
 import { emitEvent } from "@/lib/events/emitter"
 import { resolveOutputPath } from "@/lib/utils"
-import { probeMediaFile } from "@/lib/media-probe"
+import { probeMediaFile, normalizeCodec } from "@/lib/media-probe"
 import type { EncodingOptions } from "@/types/handbrake"
 import { DEFAULT_ENCODING_OPTIONS } from "@/types/handbrake"
 import path from "path"
@@ -55,10 +55,11 @@ class WatcherManager {
     const extensions = watcher.file_extensions
       .split(",")
       .map((e: string) => e.trim().toLowerCase())
-      .filter((e: string) => e.startsWith(".") ? e : `.${e}`)
+      .map((e: string) => e.startsWith(".") ? e : `.${e}`)
 
+    // Normalize codec filter values so "h264", "H.264", "x264", "avc" all match
     const codecFilterList = watcher.codec_filter
-      ? watcher.codec_filter.split(",").map((c: string) => c.trim()).filter(Boolean)
+      ? watcher.codec_filter.split(",").map((c: string) => normalizeCodec(c.trim())).filter(Boolean)
       : []
 
     const files = scanDirectory(

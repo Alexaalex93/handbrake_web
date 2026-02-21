@@ -53,22 +53,22 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-[hsl(var(--border))]">
-            <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
               Title
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] lg:table-cell">
               Source
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
               Status
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] md:table-cell">
               Priority
             </th>
-            <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
               Progress
             </th>
-            <th className="px-4 py-3 text-right font-medium text-[hsl(var(--muted-foreground))]">
+            <th className="px-3 py-3 text-right font-medium text-[hsl(var(--muted-foreground))]">
               Actions
             </th>
           </tr>
@@ -81,7 +81,7 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
                 key={task.id}
                 className="border-b border-[hsl(var(--border))] last:border-b-0 hover:bg-[hsl(var(--accent))]/50"
               >
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   <Link
                     href={`/queue/${task.id}`}
                     className="font-medium text-[hsl(var(--card-foreground))] hover:text-[hsl(var(--primary))] hover:underline"
@@ -89,20 +89,20 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
                     {task.title}
                   </Link>
                 </td>
-                <td className="max-w-[200px] truncate px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                <td className="hidden max-w-[200px] truncate px-3 py-3 text-[hsl(var(--muted-foreground))] lg:table-cell">
                   {task.sourcePath}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   <span
                     className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${status.classes}`}
                   >
                     {status.label}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                <td className="hidden px-3 py-3 text-[hsl(var(--muted-foreground))] md:table-cell">
                   {task.priority}
                 </td>
-                <td className="w-48 px-4 py-3">
+                <td className="w-32 px-3 py-3 sm:w-48">
                   {task.status === "encoding" && (
                     <TaskProgress
                       progress={task.progress}
@@ -112,7 +112,7 @@ export function TaskList({ tasks, onRefresh }: TaskListProps) {
                     />
                   )}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-3 py-3">
                   <div className="flex items-center justify-end gap-1">
                     {(task.status === "pending" || task.status === "queued") && (
                       <button

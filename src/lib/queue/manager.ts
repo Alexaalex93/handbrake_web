@@ -4,6 +4,8 @@ import { buildArgs, spawnHandBrake } from "@/lib/handbrake/cli"
 import { parseProgressLine } from "@/lib/handbrake/parser"
 import { emitEvent } from "@/lib/events/emitter"
 import { isEncodingAllowed } from "./scheduler"
+import { notifyEncodingStart, notifyEncodingComplete, notifyEncodingError } from "@/lib/notifications"
+import { updateLibraryAfterEncoding } from "@/lib/library-updater"
 import type { EncodingOptions } from "@/types/handbrake"
 import fs from "fs"
 import path from "path"
@@ -108,6 +110,11 @@ class QueueManager {
 
     db.prepare("UPDATE tasks SET status = 'encoding', started_at = datetime('now') WHERE id = ?").run(taskId)
     emitEvent({ type: "task:status", taskId, data: { status: "encoding" } })
+
+    // Send encoding start notification
+    let sourceSize = 0
+    try { sourceSize = fs.statSync(sourcePath).size } catch {}
+    notifyEncodingStart({ title: path.basename(sourcePath), sourcePath, fileSize: sourceSize }).catch(() => {})
 
     const job: ActiveJob = { taskId, process: proc, startedAt: Date.now() }
     this.activeJobs.set(taskId, job)
@@ -260,7 +267,32 @@ class QueueManager {
           }
         }
 
+        // Update libraries that contain this source file
+        try {
+          updateLibraryAfterEncoding(
+            taskRow?.source_path || sourcePath,
+            taskRow?.output_path || outputPath,
+            !!taskRow?.delete_source,
+            !!taskRow?.replace_source,
+          )
+        } catch (err: any) {
+          console.error(`[handbrake] Task ${taskId}: library update failed: ${err.message}`)
+        }
+
         emitEvent({ type: "task:status", taskId, data: { status: "completed" } })
+
+        // Send encoding complete notification
+        const encTime = taskRow?.started_at
+          ? Math.round((Date.now() - new Date(taskRow.started_at || job.startedAt).getTime()) / 1000)
+          : Math.round((Date.now() - job.startedAt) / 1000)
+        notifyEncodingComplete({
+          title: path.basename(sourcePath),
+          sourcePath,
+          sizeIn: sourceSizeIn,
+          sizeOut: fileSize,
+          duration: encTime,
+        }).catch(() => {})
+
         this.moveToHistory(taskId)
       } else {
         // Check if it was cancelled
@@ -272,6 +304,14 @@ class QueueManager {
           db.prepare("UPDATE tasks SET status = 'failed', error_message = ?, completed_at = datetime('now') WHERE id = ?")
             .run(errorMsg, taskId)
           emitEvent({ type: "task:status", taskId, data: { status: "failed", errorMessage: errorMsg } })
+
+          // Send encoding error notification
+          notifyEncodingError({
+            title: path.basename(sourcePath),
+            sourcePath,
+            error: errorMsg.slice(0, 200),
+          }).catch(() => {})
+
           this.moveToHistory(taskId)
         }
       }

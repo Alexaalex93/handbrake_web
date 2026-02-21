@@ -56,21 +56,21 @@ export default function QueuePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Queue</h1>
         <div className="flex items-center gap-2">
           {tasks.length > 0 && (
             <button
               onClick={() => setShowClearConfirm(true)}
-              className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-2 text-sm font-medium text-[hsl(var(--secondary-foreground))] hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm font-medium text-[hsl(var(--secondary-foreground))] hover:opacity-90 transition-opacity"
             >
               <Trash2 className="h-4 w-4" />
-              Clear Queue
+              <span className="hidden sm:inline">Clear Queue</span>
             </button>
           )}
           <button
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-3 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 transition-opacity"
           >
             <Plus className="h-4 w-4" />
             New Task

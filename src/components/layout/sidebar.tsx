@@ -12,6 +12,7 @@ import {
   Clock,
   Settings,
   X,
+  LogOut,
 } from "lucide-react"
 
 const navItems = [
@@ -37,6 +38,11 @@ interface SidebarProps {
 
 export function Sidebar({ onClose }: SidebarProps) {
   const pathname = usePathname()
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" })
+    window.location.href = "/login"
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -82,10 +88,14 @@ export function Sidebar({ onClose }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-[hsl(var(--sidebar-border))] px-4 py-3">
-        <p className="text-xs text-[hsl(var(--muted-foreground))]">
-          HandBrake Web v1.0.0
-        </p>
+      <div className="border-t border-[hsl(var(--sidebar-border))] px-3 py-3">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))] hover:text-[hsl(var(--sidebar-accent-foreground))] transition-colors"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign out
+        </button>
       </div>
     </div>
   )

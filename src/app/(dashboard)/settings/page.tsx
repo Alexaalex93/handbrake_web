@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import useSWR from "swr"
-import { Loader2, Save, FolderOpen } from "lucide-react"
+import { Loader2, Save, FolderOpen, Send } from "lucide-react"
 import { FileBrowser } from "@/components/shared/file-browser"
-import type { Schedule } from "@/types/settings"
+import type { Schedule, DaySchedule, DaySchedules } from "@/types/settings"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
@@ -19,6 +19,7 @@ export default function SettingsPage() {
     "/api/schedule",
     fetcher
   )
+  const { data: notifData } = useSWR<any>("/api/notifications", fetcher)
   const { data: systemData } = useSWR<{
     cpu: { usage: number; count: number }
     memory: { total: number; free: number; used: number }
@@ -38,6 +39,9 @@ export default function SettingsPage() {
     default_output_dir: "/output",
     default_output_pattern: "{name}_encoded.{ext}",
   })
+  const defaultDaySchedules: DaySchedules = Object.fromEntries(
+    [0, 1, 2, 3, 4, 5, 6].map((d) => [String(d), { enabled: true, start: "00:00", end: "23:59" }])
+  )
   const [schedule, setSchedule] = useState<Schedule>({
     id: 1,
     enabled: false,
@@ -45,9 +49,20 @@ export default function SettingsPage() {
     timeStart: null,
     timeEnd: null,
     daysOfWeek: "0,1,2,3,4,5,6",
+    daySchedules: null,
     cronExpr: null,
     updatedAt: "",
   })
+  const [notifications, setNotifications] = useState({
+    enabled: false,
+    telegramBotToken: "",
+    telegramChatId: "",
+    webhookUrl: "",
+    notifyOnStart: true,
+    notifyOnComplete: true,
+    notifyOnError: true,
+  })
+  const [testingNotif, setTestingNotif] = useState(false)
   const [saving, setSaving] = useState(false)
   const [browsing, setBrowsing] = useState<"handbrake" | "ffprobe" | "output" | null>(null)
 
@@ -65,6 +80,12 @@ export default function SettingsPage() {
     }
   }, [scheduleData])
 
+  useEffect(() => {
+    if (notifData && !("error" in notifData)) {
+      setNotifications((prev) => ({ ...prev, ...notifData }))
+    }
+  }, [notifData])
+
   const handleSave = async () => {
     setSaving(true)
     try {
@@ -79,11 +100,31 @@ export default function SettingsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(schedule),
         }),
+        fetch("/api/notifications", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(notifications),
+        }),
       ])
       mutateSettings()
       mutateSchedule()
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleTestNotification = async () => {
+    setTestingNotif(true)
+    try {
+      const res = await fetch("/api/notifications/test", { method: "POST" })
+      if (!res.ok) {
+        const data = await res.json()
+        alert(data.error || "Test failed")
+      }
+    } catch {
+      alert("Test failed")
+    } finally {
+      setTestingNotif(false)
     }
   }
 
@@ -321,6 +362,7 @@ export default function SettingsPage() {
                 >
                   <option value="always">Always On</option>
                   <option value="time_window">Time Window</option>
+                  <option value="per_day">Per Day Schedule</option>
                   <option value="cron">Cron Expression</option>
                 </select>
               </div>
@@ -361,7 +403,7 @@ export default function SettingsPage() {
                   <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">
                     Days
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {daysOfWeek.map((day, i) => {
                       const dayVal = String(i)
                       const selected = selectedDays.includes(dayVal)
@@ -383,11 +425,180 @@ export default function SettingsPage() {
                 </div>
               )}
 
+              {schedule.mode === "per_day" && (
+                <div>
+                  <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+                    Schedule per day
+                  </label>
+                  <div className="space-y-2">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => {
+                      const dayKey = String(i)
+                      const ds = schedule.daySchedules || defaultDaySchedules
+                      const dayConf = ds[dayKey] || { enabled: false, start: "00:00", end: "23:59" }
+                      const updateDay = (updates: Partial<DaySchedule>) => {
+                        const current = schedule.daySchedules || defaultDaySchedules
+                        setSchedule({
+                          ...schedule,
+                          daySchedules: {
+                            ...current,
+                            [dayKey]: { ...dayConf, ...updates },
+                          },
+                        })
+                      }
+                      return (
+                        <div key={day} className="flex items-center gap-3">
+                          <label className="flex w-16 items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                            <input
+                              type="checkbox"
+                              checked={dayConf.enabled}
+                              onChange={(e) => updateDay({ enabled: e.target.checked })}
+                              className="accent-[hsl(var(--primary))]"
+                            />
+                            {day}
+                          </label>
+                          {dayConf.enabled && (
+                            <>
+                              <input
+                                type="time"
+                                value={dayConf.start}
+                                onChange={(e) => updateDay({ start: e.target.value })}
+                                className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2 py-1 text-sm text-[hsl(var(--foreground))]"
+                              />
+                              <span className="text-xs text-[hsl(var(--muted-foreground))]">to</span>
+                              <input
+                                type="time"
+                                value={dayConf.end}
+                                onChange={(e) => updateDay({ end: e.target.value })}
+                                className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2 py-1 text-sm text-[hsl(var(--foreground))]"
+                              />
+                            </>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               {systemData?.serverTime && (
                 <p className="text-xs text-[hsl(var(--muted-foreground))]">
                   Server time: {new Date(systemData.serverTime).toLocaleTimeString()} &mdash; Set <code className="rounded bg-[hsl(var(--secondary))] px-1">TZ</code> env var in Docker if this doesn&apos;t match your local time.
                 </p>
               )}
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* Notifications */}
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+        <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--card-foreground))]">
+          Notifications
+        </h2>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="checkbox"
+              id="notif-enabled"
+              checked={notifications.enabled}
+              onChange={(e) => setNotifications({ ...notifications, enabled: e.target.checked })}
+              className="h-4 w-4 rounded border-[hsl(var(--border))] bg-[hsl(var(--input))] accent-[hsl(var(--primary))]"
+            />
+            <label htmlFor="notif-enabled" className="text-sm text-[hsl(var(--card-foreground))]">
+              Enable notifications
+            </label>
+          </div>
+
+          {notifications.enabled && (
+            <>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+                  Telegram Bot Token
+                </label>
+                <input
+                  type="text"
+                  value={notifications.telegramBotToken}
+                  onChange={(e) => setNotifications({ ...notifications, telegramBotToken: e.target.value })}
+                  placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+                />
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  Create a bot via @BotFather on Telegram
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+                  Telegram Chat ID
+                </label>
+                <input
+                  type="text"
+                  value={notifications.telegramChatId}
+                  onChange={(e) => setNotifications({ ...notifications, telegramChatId: e.target.value })}
+                  placeholder="-1001234567890"
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+                />
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  Get your chat ID from @userinfobot
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+                  Webhook URL (Discord, Slack, etc.)
+                </label>
+                <input
+                  type="text"
+                  value={notifications.webhookUrl}
+                  onChange={(e) => setNotifications({ ...notifications, webhookUrl: e.target.value })}
+                  placeholder="https://discord.com/api/webhooks/..."
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))]"
+                />
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">
+                  Events
+                </label>
+                <div className="flex flex-wrap gap-4">
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input
+                      type="checkbox"
+                      checked={notifications.notifyOnStart}
+                      onChange={(e) => setNotifications({ ...notifications, notifyOnStart: e.target.checked })}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Encoding start
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input
+                      type="checkbox"
+                      checked={notifications.notifyOnComplete}
+                      onChange={(e) => setNotifications({ ...notifications, notifyOnComplete: e.target.checked })}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Encoding complete
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                    <input
+                      type="checkbox"
+                      checked={notifications.notifyOnError}
+                      onChange={(e) => setNotifications({ ...notifications, notifyOnError: e.target.checked })}
+                      className="accent-[hsl(var(--primary))]"
+                    />
+                    Encoding error
+                  </label>
+                </div>
+              </div>
+
+              <button
+                onClick={handleTestNotification}
+                disabled={testingNotif}
+                className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-4 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90 disabled:opacity-50"
+              >
+                {testingNotif ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                Send Test Notification
+              </button>
             </>
           )}
         </div>

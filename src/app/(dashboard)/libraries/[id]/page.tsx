@@ -19,6 +19,12 @@ import {
   ArrowUp,
   ArrowDown,
   FolderSearch,
+  List,
+  FolderTree,
+  Folder,
+  FolderOpen,
+  FileVideo,
+  ChevronDown,
 } from "lucide-react"
 import type { LibraryItem } from "@/types/library"
 import type { Preset } from "@/types/preset"
@@ -90,8 +96,12 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [watcherDeleteSource, setWatcherDeleteSource] = useState(false)
   const [watcherReplaceSource, setWatcherReplaceSource] = useState(false)
   const [watcherError, setWatcherError] = useState("")
+  const [viewMode, setViewMode] = useState<"table" | "tree">("table")
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
 
-  const queryParams = new URLSearchParams({ page: page.toString(), limit: limit.toString(), sort: sortBy, order: sortOrder })
+  // In tree mode, fetch all items (no pagination) so the full folder structure is visible
+  const effectiveLimit = viewMode === "tree" ? 0 : limit
+  const queryParams = new URLSearchParams({ page: page.toString(), limit: effectiveLimit.toString(), sort: sortBy, order: sortOrder })
   if (codecFilter !== "all") queryParams.set("codec", codecFilter)
   if (searchTerm) queryParams.set("search", searchTerm)
 
@@ -235,6 +245,181 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     return sortOrder === "asc"
       ? <ArrowUp className="ml-1 inline h-3 w-3" />
       : <ArrowDown className="ml-1 inline h-3 w-3" />
+  }
+
+  // ---- Tree view logic ----
+  interface TreeNode {
+    name: string
+    path: string // full relative path for this folder
+    children: Map<string, TreeNode>
+    items: LibraryItem[]
+  }
+
+  const buildTree = (fileItems: LibraryItem[], basePath: string): TreeNode => {
+    const root: TreeNode = { name: "root", path: "", children: new Map(), items: [] }
+    const normalizedBase = basePath.replace(/\\/g, "/").replace(/\/$/, "")
+
+    for (const item of fileItems) {
+      const normalizedPath = item.filePath.replace(/\\/g, "/")
+      // Get relative path, strip base and leading /
+      let rel = normalizedPath
+      if (normalizedPath.startsWith(normalizedBase)) {
+        rel = normalizedPath.slice(normalizedBase.length)
+      }
+      if (rel.startsWith("/")) rel = rel.slice(1)
+
+      const parts = rel.split("/")
+      const fileName = parts.pop()! // last segment is the filename
+      let current = root
+
+      // Navigate/create folder nodes
+      let pathSoFar = ""
+      for (const part of parts) {
+        pathSoFar = pathSoFar ? `${pathSoFar}/${part}` : part
+        if (!current.children.has(part)) {
+          current.children.set(part, { name: part, path: pathSoFar, children: new Map(), items: [] })
+        }
+        current = current.children.get(part)!
+      }
+
+      current.items.push(item)
+    }
+
+    return root
+  }
+
+  const treeRoot = viewMode === "tree" && library ? buildTree(items, library.path) : null
+
+  const toggleFolder = (path: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
+  }
+
+  const expandAll = () => {
+    if (!treeRoot) return
+    const allPaths = new Set<string>()
+    const collect = (node: TreeNode) => {
+      if (node.path) allPaths.add(node.path)
+      for (const child of node.children.values()) collect(child)
+    }
+    collect(treeRoot)
+    setExpandedFolders(allPaths)
+  }
+
+  const collapseAll = () => setExpandedFolders(new Set())
+
+  // Count total files under a node (including nested)
+  const countFiles = (node: TreeNode): number => {
+    let count = node.items.length
+    for (const child of node.children.values()) count += countFiles(child)
+    return count
+  }
+
+  // Count total size under a node
+  const sumSize = (node: TreeNode): number => {
+    let size = node.items.reduce((s, i) => s + i.fileSize, 0)
+    for (const child of node.children.values()) size += sumSize(child)
+    return size
+  }
+
+  // Select all items under a tree node
+  const selectTreeNode = (node: TreeNode) => {
+    setSelectedMap(prev => {
+      const next = new Map(prev)
+      const addAll = (n: TreeNode) => {
+        for (const item of n.items) next.set(item.id, item.filePath)
+        for (const child of n.children.values()) addAll(child)
+      }
+      addAll(node)
+      return next
+    })
+  }
+
+  // Render a tree node
+  const renderTreeNode = (node: TreeNode, depth: number) => {
+    const isExpanded = expandedFolders.has(node.path)
+    const fileCount = countFiles(node)
+    const totalSize = sumSize(node)
+    const sortedChildren = Array.from(node.children.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
+    const sortedItems = node.items // already sorted from API
+
+    return (
+      <div key={node.path || "root"}>
+        {/* Folder header (skip for root) */}
+        {node.path && (
+          <div
+            className="group flex items-center gap-1 border-b border-[hsl(var(--border))]/50 py-2 hover:bg-[hsl(var(--accent))]/30"
+            style={{ paddingLeft: `${depth * 20 + 8}px` }}
+          >
+            <button
+              onClick={() => toggleFolder(node.path)}
+              className="flex items-center gap-1.5 text-[hsl(var(--card-foreground))] hover:text-[hsl(var(--primary))]"
+            >
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+              {isExpanded ? <FolderOpen className="h-4 w-4 text-yellow-500" /> : <Folder className="h-4 w-4 text-yellow-600" />}
+              <span className="font-medium">{node.name}</span>
+            </button>
+            <span className="ml-2 text-xs text-[hsl(var(--muted-foreground))]">
+              {fileCount} file{fileCount !== 1 ? "s" : ""} · {formatSize(totalSize)}
+            </span>
+            <button
+              onClick={() => selectTreeNode(node)}
+              className="ml-auto mr-3 hidden rounded px-2 py-0.5 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] group-hover:inline-flex"
+              title="Select all files in this folder"
+            >
+              Select all
+            </button>
+          </div>
+        )}
+
+        {/* Children (folders + files) */}
+        {(isExpanded || !node.path) && (
+          <>
+            {sortedChildren.map(child => renderTreeNode(child, node.path ? depth + 1 : depth))}
+            {sortedItems.map(item => (
+              <div
+                key={item.id}
+                className={`flex items-center gap-2 border-b border-[hsl(var(--border))]/30 py-1.5 text-sm hover:bg-[hsl(var(--accent))]/50 ${
+                  selectedMap.has(item.id) ? "bg-[hsl(var(--primary))]/10" : ""
+                }`}
+                style={{ paddingLeft: `${(node.path ? depth + 1 : depth) * 20 + 8}px` }}
+              >
+                <button onClick={() => toggleSelect(item)} className="shrink-0 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]">
+                  {selectedMap.has(item.id) ? <CheckSquare className="h-3.5 w-3.5 text-[hsl(var(--primary))]" /> : <Square className="h-3.5 w-3.5" />}
+                </button>
+                <FileVideo className="h-3.5 w-3.5 shrink-0 text-[hsl(var(--muted-foreground))]" />
+                <span className="min-w-0 flex-1 truncate font-medium text-[hsl(var(--card-foreground))]" title={item.filePath}>
+                  {item.fileName}
+                </span>
+                {item.videoCodec && (
+                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    item.videoCodec === "H.265" ? "bg-green-500/20 text-green-400" :
+                    item.videoCodec === "AV1" ? "bg-blue-500/20 text-blue-400" :
+                    item.videoCodec === "H.264" ? "bg-yellow-500/20 text-yellow-400" :
+                    "bg-gray-500/20 text-gray-400"
+                  }`}>
+                    {item.videoCodec}
+                  </span>
+                )}
+                <span className="hidden shrink-0 text-xs text-[hsl(var(--muted-foreground))] sm:inline">
+                  {formatResolution(item.width, item.height)}
+                </span>
+                <span className="hidden shrink-0 text-xs text-[hsl(var(--muted-foreground))] md:inline">
+                  {formatDuration(item.duration)}
+                </span>
+                <span className="w-16 shrink-0 text-right font-mono text-xs text-[hsl(var(--muted-foreground))]">
+                  {formatSize(item.fileSize)}
+                </span>
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+    )
   }
 
   const openBatchDialog = () => {
@@ -454,6 +639,42 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
         <span className="text-sm text-[hsl(var(--muted-foreground))]">
           {total} items
         </span>
+        {/* View mode toggle */}
+        <div className="flex rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))]">
+          <button
+            onClick={() => setViewMode("table")}
+            className={`inline-flex items-center gap-1 rounded-l-md px-2.5 py-1.5 text-sm ${
+              viewMode === "table"
+                ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            }`}
+            title="Table view"
+          >
+            <List className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => {
+              setViewMode("tree")
+              // Auto-expand first level when switching to tree
+              if (viewMode !== "tree" && library) {
+                const tempRoot = buildTree(items, library.path)
+                const firstLevel = new Set<string>()
+                for (const child of tempRoot.children.values()) {
+                  firstLevel.add(child.path)
+                }
+                setExpandedFolders(firstLevel)
+              }
+            }}
+            className={`inline-flex items-center gap-1 rounded-r-md px-2.5 py-1.5 text-sm ${
+              viewMode === "tree"
+                ? "bg-[hsl(var(--primary))] text-[hsl(var(--primary-foreground))]"
+                : "text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+            }`}
+            title="Folder tree view"
+          >
+            <FolderTree className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       {/* Codec chips */}
@@ -475,7 +696,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Items table */}
+      {/* Items table / tree view */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16">
           <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--muted-foreground))]" />
@@ -486,7 +707,35 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
             {total === 0 ? 'No items found. Click "Scan Files" to discover media files.' : "No items match the current filters."}
           </p>
         </div>
+      ) : viewMode === "tree" && treeRoot ? (
+        /* Tree View */
+        <div className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
+          {/* Tree toolbar */}
+          <div className="flex items-center gap-2 border-b border-[hsl(var(--border))] px-3 py-2">
+            <button
+              onClick={expandAll}
+              className="rounded px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
+            >
+              Expand all
+            </button>
+            <button
+              onClick={collapseAll}
+              className="rounded px-2 py-1 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
+            >
+              Collapse all
+            </button>
+            <span className="ml-auto text-xs text-[hsl(var(--muted-foreground))]">
+              {treeRoot.children.size} folder{treeRoot.children.size !== 1 ? "s" : ""}
+              {treeRoot.items.length > 0 && ` · ${treeRoot.items.length} root file${treeRoot.items.length !== 1 ? "s" : ""}`}
+            </span>
+          </div>
+          {/* Tree content */}
+          <div className="max-h-[70vh] overflow-y-auto">
+            {renderTreeNode(treeRoot, 0)}
+          </div>
+        </div>
       ) : (
+        /* Table View */
         <div className="overflow-x-auto rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]">
           <table className="w-full text-sm">
             <thead>
@@ -848,45 +1097,47 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      {/* Pagination + Page Size */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-[hsl(var(--muted-foreground))]">Show</span>
-          <select
-            value={limit}
-            onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
-            className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2 py-1 text-sm text-[hsl(var(--foreground))]"
-          >
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-            <option value={200}>200</option>
-            <option value={400}>400</option>
-            <option value={0}>All</option>
-          </select>
-          <span className="text-sm text-[hsl(var(--muted-foreground))]">items</span>
-        </div>
-        {limit > 0 && totalPages > 1 && (
+      {/* Pagination + Page Size (hidden in tree view) */}
+      {viewMode === "table" && (
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+            <span className="text-sm text-[hsl(var(--muted-foreground))]">Show</span>
+            <select
+              value={limit}
+              onChange={(e) => { setLimit(Number(e.target.value)); setPage(1) }}
+              className="rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-2 py-1 text-sm text-[hsl(var(--foreground))]"
             >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-sm text-[hsl(var(--muted-foreground))]">
-              Page {page} of {totalPages}
-            </span>
-            <button
-              onClick={() => setPage(Math.min(totalPages, page + 1))}
-              disabled={page === totalPages}
-              className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
+              <option value={400}>400</option>
+              <option value={0}>All</option>
+            </select>
+            <span className="text-sm text-[hsl(var(--muted-foreground))]">items</span>
           </div>
-        )}
-      </div>
+          {limit > 0 && totalPages > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm text-[hsl(var(--muted-foreground))]">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="rounded p-2 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

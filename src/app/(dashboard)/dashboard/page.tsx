@@ -5,6 +5,7 @@ import { QueueSummaryCard } from "@/components/dashboard/queue-summary"
 import { RecentHistoryCard } from "@/components/dashboard/recent-history-card"
 import { WatcherStatusCard } from "@/components/dashboard/watcher-status-card"
 import { SystemStatsCard } from "@/components/dashboard/system-stats"
+import { EncodingStatsCard } from "@/components/dashboard/encoding-stats-card"
 
 export default function DashboardPage() {
   return (
@@ -15,6 +16,7 @@ export default function DashboardPage() {
         <ActiveJobsCard />
         <QueueSummaryCard />
         <SystemStatsCard />
+        <EncodingStatsCard />
         <RecentHistoryCard />
         <WatcherStatusCard />
       </div>
