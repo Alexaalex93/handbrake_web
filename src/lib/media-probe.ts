@@ -1,4 +1,4 @@
-import { execSync } from "child_process"
+import { execSync, spawnSync } from "child_process"
 import fs from "fs"
 import path from "path"
 import os from "os"
@@ -36,22 +36,22 @@ function findFfprobe(): string | null {
     const db = getDb()
     const row = db.prepare("SELECT value FROM settings WHERE key = ?").get("ffprobe_path") as { value: string } | undefined
     if (row?.value && row.value !== "ffprobe") {
-      // User specified a custom path
-      execSync(`"${row.value}" -version`, { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
-      _ffprobePath = row.value
-      return _ffprobePath
+      // User specified a custom path — use spawnSync (doesn't throw on non-zero exit)
+      const r = spawnSync(row.value, ["-version"], { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+      if (!r.error) {
+        _ffprobePath = row.value
+        return _ffprobePath
+      }
     }
   } catch {
     // DB not available or custom path failed
   }
 
-  // Try PATH
-  try {
-    execSync("ffprobe -version", { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+  // Try PATH — spawnSync doesn't throw on non-zero exit, only sets .error for ENOENT
+  const r = spawnSync("ffprobe", ["-version"], { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+  if (!r.error) {
     _ffprobePath = "ffprobe"
     return _ffprobePath
-  } catch {
-    // Not in PATH
   }
 
   // Check common Windows locations
@@ -90,9 +90,13 @@ export function findHandBrake(): string | null {
     const row = db.prepare("SELECT value FROM settings WHERE key = ?").get("handbrake_path") as { value: string } | undefined
     const hbPath = row?.value || "HandBrakeCLI"
 
-    execSync(`"${hbPath}" --version`, { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
-    _handBrakePath = hbPath
-    return _handBrakePath
+    // Use spawnSync which doesn't throw on non-zero exit codes
+    // (HandBrakeCLI --version may return non-zero even when working)
+    const r = spawnSync(hbPath, ["--version"], { encoding: "utf-8", timeout: 5000, stdio: "pipe" })
+    if (!r.error) {
+      _handBrakePath = hbPath
+      return _handBrakePath
+    }
   } catch {
     // Not available
   }

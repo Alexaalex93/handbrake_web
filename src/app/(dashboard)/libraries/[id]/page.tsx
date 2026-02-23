@@ -326,15 +326,43 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     return size
   }
 
-  // Select all items under a tree node
-  const selectTreeNode = (node: TreeNode) => {
+  // Collect all item IDs under a node
+  const collectNodeItemIds = (node: TreeNode): number[] => {
+    const ids: number[] = node.items.map(i => i.id)
+    for (const child of node.children.values()) ids.push(...collectNodeItemIds(child))
+    return ids
+  }
+
+  // Check selection state for a folder node
+  const getNodeSelectionState = (node: TreeNode): "all" | "some" | "none" => {
+    const ids = collectNodeItemIds(node)
+    if (ids.length === 0) return "none"
+    const selectedCount = ids.filter(id => selectedMap.has(id)).length
+    if (selectedCount === ids.length) return "all"
+    if (selectedCount > 0) return "some"
+    return "none"
+  }
+
+  // Toggle selection for an entire folder node
+  const toggleTreeNodeSelect = (node: TreeNode) => {
+    const state = getNodeSelectionState(node)
     setSelectedMap(prev => {
       const next = new Map(prev)
-      const addAll = (n: TreeNode) => {
-        for (const item of n.items) next.set(item.id, item.filePath)
-        for (const child of n.children.values()) addAll(child)
+      if (state === "all") {
+        // Deselect all in this folder
+        const removeAll = (n: TreeNode) => {
+          for (const item of n.items) next.delete(item.id)
+          for (const child of n.children.values()) removeAll(child)
+        }
+        removeAll(node)
+      } else {
+        // Select all in this folder
+        const addAll = (n: TreeNode) => {
+          for (const item of n.items) next.set(item.id, item.filePath)
+          for (const child of n.children.values()) addAll(child)
+        }
+        addAll(node)
       }
-      addAll(node)
       return next
     })
   }
@@ -344,6 +372,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     const isExpanded = expandedFolders.has(node.path)
     const fileCount = countFiles(node)
     const totalSize = sumSize(node)
+    const selState = node.path ? getNodeSelectionState(node) : "none"
     const sortedChildren = Array.from(node.children.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
     const sortedItems = node.items // already sorted from API
 
@@ -352,27 +381,33 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
         {/* Folder header (skip for root) */}
         {node.path && (
           <div
-            className="group flex items-center gap-1 border-b border-[hsl(var(--border))]/50 py-2 hover:bg-[hsl(var(--accent))]/30"
+            className="group flex items-center gap-1.5 border-b border-[hsl(var(--border))]/50 py-2 hover:bg-[hsl(var(--accent))]/30"
             style={{ paddingLeft: `${depth * 20 + 8}px` }}
           >
             <button
-              onClick={() => toggleFolder(node.path)}
-              className="flex items-center gap-1.5 text-[hsl(var(--card-foreground))] hover:text-[hsl(var(--primary))]"
+              onClick={() => toggleTreeNodeSelect(node)}
+              className="shrink-0 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--foreground))]"
+              title={selState === "all" ? "Deselect all in folder" : "Select all in folder"}
             >
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
-              {isExpanded ? <FolderOpen className="h-4 w-4 text-yellow-500" /> : <Folder className="h-4 w-4 text-yellow-600" />}
-              <span className="font-medium">{node.name}</span>
+              {selState === "all" ? (
+                <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))]" />
+              ) : selState === "some" ? (
+                <CheckSquare className="h-4 w-4 text-[hsl(var(--primary))]/50" />
+              ) : (
+                <Square className="h-4 w-4" />
+              )}
             </button>
-            <span className="ml-2 text-xs text-[hsl(var(--muted-foreground))]">
-              {fileCount} file{fileCount !== 1 ? "s" : ""} · {formatSize(totalSize)}
-            </span>
             <button
-              onClick={() => selectTreeNode(node)}
-              className="ml-auto mr-3 hidden rounded px-2 py-0.5 text-xs text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))] group-hover:inline-flex"
-              title="Select all files in this folder"
+              onClick={() => toggleFolder(node.path)}
+              className="flex min-w-0 items-center gap-1.5 text-[hsl(var(--card-foreground))] hover:text-[hsl(var(--primary))]"
             >
-              Select all
+              <ChevronDown className={`h-3.5 w-3.5 shrink-0 transition-transform ${isExpanded ? "" : "-rotate-90"}`} />
+              {isExpanded ? <FolderOpen className="h-4 w-4 shrink-0 text-yellow-500" /> : <Folder className="h-4 w-4 shrink-0 text-yellow-600" />}
+              <span className="truncate font-medium">{node.name}</span>
             </button>
+            <span className="ml-auto shrink-0 text-xs text-[hsl(var(--muted-foreground))]">
+              {fileCount} · {formatSize(totalSize)}
+            </span>
           </div>
         )}
 
@@ -496,15 +531,17 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <Link href="/libraries" className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
-          <ChevronLeft className="h-5 w-5" />
-        </Link>
-        <div className="flex-1">
-          <h1 className="text-2xl font-bold">{library?.name ?? "Library"}</h1>
-          <p className="text-sm text-[hsl(var(--muted-foreground))]">{library?.path}</p>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3">
+          <Link href="/libraries" className="shrink-0 rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
+            <ChevronLeft className="h-5 w-5" />
+          </Link>
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-xl font-bold sm:text-2xl">{library?.name ?? "Library"}</h1>
+            <p className="truncate text-xs text-[hsl(var(--muted-foreground))] sm:text-sm">{library?.path}</p>
+          </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
               setWatcherPresetId(null)
@@ -513,25 +550,25 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               setWatcherError("")
               setShowWatcherDialog(true)
             }}
-            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
+            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-2.5 py-1.5 text-xs text-[hsl(var(--secondary-foreground))] hover:opacity-90 sm:px-3 sm:py-2 sm:text-sm"
             title={`Create a watcher for this path${codecFilter !== "all" ? ` filtering ${codecFilter}` : ""}`}
           >
             <FolderSearch className="h-4 w-4" />
-            Create Watcher
+            <span className="hidden sm:inline">Create Watcher</span>
           </button>
           <button
             onClick={() => handleScan(false)}
             disabled={scanning || isProbing}
-            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-2.5 py-1.5 text-xs text-[hsl(var(--secondary-foreground))] hover:opacity-90 disabled:opacity-50 sm:px-3 sm:py-2 sm:text-sm"
             title="Only discover new/removed files on disk (no media analysis)"
           >
             {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Scan Files
+            <span className="hidden sm:inline">Scan Files</span>
           </button>
           <button
             onClick={() => handleScan(true, false)}
             disabled={scanning || isProbing}
-            className="inline-flex items-center gap-1 rounded-md bg-[hsl(var(--primary))] px-3 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md bg-[hsl(var(--primary))] px-2.5 py-1.5 text-xs font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50 sm:px-3 sm:py-2 sm:text-sm"
             title="Discover new files and analyze only new/unscanned ones (fast, incremental)"
           >
             {(scanning || isProbing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Scan className="h-4 w-4" />}
@@ -540,29 +577,24 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
           <button
             onClick={() => handleScan(true, true)}
             disabled={scanning || isProbing}
-            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-orange-600 px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50"
+            className="inline-flex items-center gap-1 rounded-md border border-[hsl(var(--border))] bg-orange-600 px-2.5 py-1.5 text-xs font-medium text-white hover:opacity-90 disabled:opacity-50 sm:px-3 sm:py-2 sm:text-sm"
             title="Re-analyze ALL files from scratch (slow, use only when needed)"
           >
             {(scanning || isProbing) ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Re-scan All
+            <span className="hidden sm:inline">Re-scan All</span>
           </button>
         </div>
       </div>
 
       {/* Probe progress bar */}
       {probeProgress && (probeProgress.status === "probing" || probeProgress.status === "scanning") && (
-        <div className="rounded-md border border-[hsl(var(--primary))]/30 bg-[hsl(var(--primary))]/5 p-4">
-          <div className="mb-2 flex items-center justify-between text-sm">
-            <span className="text-[hsl(var(--primary))]">
-              <Loader2 className="mr-2 inline h-4 w-4 animate-spin" />
-              Probing {probeProgress.probedTotal < probeProgress.totalFiles ? "new" : "all"} media files... {probeProgress.probedFiles + probeProgress.probeErrors} / {probeProgress.probedTotal}
-              {probeProgress.probedTotal < probeProgress.totalFiles && (
-                <span className="ml-2 text-xs text-[hsl(var(--muted-foreground))]">
-                  ({probeProgress.totalFiles - probeProgress.probedTotal} already scanned, skipped)
-                </span>
-              )}
+        <div className="rounded-md border border-[hsl(var(--primary))]/30 bg-[hsl(var(--primary))]/5 p-3 sm:p-4">
+          <div className="mb-2 flex items-center justify-between gap-2 text-sm">
+            <span className="min-w-0 truncate text-[hsl(var(--primary))]">
+              <Loader2 className="mr-1 inline h-4 w-4 animate-spin" />
+              Probing... {probeProgress.probedFiles + probeProgress.probeErrors}/{probeProgress.probedTotal}
             </span>
-            <span className="font-mono text-[hsl(var(--muted-foreground))]">{probePercent}%</span>
+            <span className="shrink-0 font-mono text-[hsl(var(--muted-foreground))]">{probePercent}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-[hsl(var(--secondary))]">
             <div
@@ -755,17 +787,17 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                     Video<SortIcon column="codec" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                <th className="hidden px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] md:table-cell">
                   <button onClick={() => handleSort("resolution")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
                     Resolution<SortIcon column="resolution" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                <th className="hidden px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] lg:table-cell">
                   <button onClick={() => handleSort("audio")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
                     Audio<SortIcon column="audio" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                <th className="hidden px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] md:table-cell">
                   <button onClick={() => handleSort("duration")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
                     Duration<SortIcon column="duration" />
                   </button>
@@ -775,7 +807,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                     Size<SortIcon column="size" />
                   </button>
                 </th>
-                <th className="px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">
+                <th className="hidden px-4 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] lg:table-cell">
                   <button onClick={() => handleSort("subs")} className="inline-flex items-center hover:text-[hsl(var(--foreground))]">
                     Subs<SortIcon column="subs" />
                   </button>
@@ -812,19 +844,19 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                       <span className="text-[hsl(var(--muted-foreground))]">-</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                  <td className="hidden px-4 py-3 text-[hsl(var(--muted-foreground))] md:table-cell">
                     {formatResolution(item.width, item.height)}
                   </td>
-                  <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                  <td className="hidden px-4 py-3 text-[hsl(var(--muted-foreground))] lg:table-cell">
                     {item.audioCodec ?? "-"}
                   </td>
-                  <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                  <td className="hidden px-4 py-3 text-[hsl(var(--muted-foreground))] md:table-cell">
                     {formatDuration(item.duration)}
                   </td>
                   <td className="px-4 py-3 font-mono text-[hsl(var(--muted-foreground))]">
                     {formatSize(item.fileSize)}
                   </td>
-                  <td className="px-4 py-3 text-[hsl(var(--muted-foreground))]">
+                  <td className="hidden px-4 py-3 text-[hsl(var(--muted-foreground))] lg:table-cell">
                     {item.subtitleCount > 0 ? item.subtitleCount : "-"}
                   </td>
                 </tr>
@@ -852,26 +884,29 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
 
       {/* Floating action bar when items selected */}
       {selectedMap.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 transform">
-          <div className="flex items-center gap-4 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-5 py-3 shadow-2xl">
+        <div className="fixed inset-x-3 bottom-4 z-50 sm:inset-x-auto sm:bottom-6 sm:left-1/2 sm:-translate-x-1/2">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] px-4 py-2.5 shadow-2xl sm:gap-4 sm:px-5 sm:py-3">
             <span className="text-sm font-medium text-[hsl(var(--card-foreground))]">
               {selectedMap.size} selected
             </span>
-            <button
-              onClick={openBatchDialog}
-              disabled={addingToQueue}
-              className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
-            >
-              {addingToQueue ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
-              Add to Queue
-            </button>
-            <button
-              onClick={clearSelection}
-              className="rounded p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
-              title="Clear selection"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openBatchDialog}
+                disabled={addingToQueue}
+                className="inline-flex items-center gap-1.5 rounded-md bg-[hsl(var(--primary))] px-3 py-1.5 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50 sm:gap-2 sm:px-4 sm:py-2"
+              >
+                {addingToQueue ? <Loader2 className="h-4 w-4 animate-spin" /> : <ListPlus className="h-4 w-4" />}
+                <span className="hidden sm:inline">Add to Queue</span>
+                <span className="sm:hidden">Queue</span>
+              </button>
+              <button
+                onClick={clearSelection}
+                className="rounded p-1.5 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] hover:text-[hsl(var(--foreground))]"
+                title="Clear selection"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       )}

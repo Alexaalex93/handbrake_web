@@ -79,7 +79,6 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--primary))]"
-                placeholder="admin"
               />
             </div>
 
@@ -97,7 +96,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:border-[hsl(var(--primary))] focus:outline-none focus:ring-1 focus:ring-[hsl(var(--primary))]"
-                placeholder="••••••••"
               />
             </div>
           </div>
@@ -114,10 +112,6 @@ export default function LoginPage() {
             )}
           </button>
         </form>
-
-        <p className="mt-4 text-center text-xs text-[hsl(var(--muted-foreground))]">
-          Default credentials can be changed via environment variables
-        </p>
       </div>
     </div>
   )

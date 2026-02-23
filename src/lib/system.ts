@@ -1,5 +1,5 @@
 import os from "os"
-import { execSync } from "child_process"
+import { execSync, spawnSync } from "child_process"
 import { findHandBrake } from "@/lib/media-probe"
 
 export function getSystemStats() {
@@ -110,11 +110,15 @@ export function getHandBrakeVersion(): string {
     if (!hbPath) {
       return "Not found"
     }
-    const output = execSync(`"${hbPath}" --version 2>&1`, {
+    // Use spawnSync to avoid throwing on non-zero exit codes
+    // HandBrakeCLI --version may exit non-zero while still printing version info
+    const result = spawnSync(hbPath, ["--version"], {
       encoding: "utf-8",
       timeout: 5000,
-      stdio: ["pipe", "pipe", "pipe"],
+      stdio: "pipe",
     })
+    // Combine stdout + stderr since version info may go to either stream
+    const output = (result.stdout || "") + " " + (result.stderr || "")
     // Match version number specifically (e.g. "HandBrake 1.7.3") to avoid
     // matching debug lines like "HandBrake has been compiled with..."
     const match = output.match(/HandBrake\s+(\d+\.\d+[\.\d]*)/)

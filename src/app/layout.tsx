@@ -24,7 +24,7 @@ export default function RootLayout({
   return (
     <html lang="es" className="dark">
       <body
-        className={`${inter.variable} font-sans bg-[hsl(var(--background))] text-[hsl(var(--foreground))] antialiased`}
+        className={`${inter.variable} font-sans overflow-x-hidden bg-[hsl(var(--background))] text-[hsl(var(--foreground))] antialiased`}
       >
         <SWRProvider>{children}</SWRProvider>
       </body>

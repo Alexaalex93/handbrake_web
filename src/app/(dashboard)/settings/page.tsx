@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import useSWR from "swr"
-import { Loader2, Save, FolderOpen, Send } from "lucide-react"
+import { Loader2, Save, FolderOpen, Send, KeyRound } from "lucide-react"
 import { FileBrowser } from "@/components/shared/file-browser"
 import type { Schedule, DaySchedule, DaySchedules } from "@/types/settings"
 
@@ -65,6 +65,11 @@ export default function SettingsPage() {
   const [testingNotif, setTestingNotif] = useState(false)
   const [saving, setSaving] = useState(false)
   const [browsing, setBrowsing] = useState<"handbrake" | "ffprobe" | "output" | null>(null)
+  const [credCurrentPass, setCredCurrentPass] = useState("")
+  const [credNewUser, setCredNewUser] = useState("")
+  const [credNewPass, setCredNewPass] = useState("")
+  const [credSaving, setCredSaving] = useState(false)
+  const [credMsg, setCredMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null)
 
   const isWindows = typeof navigator !== "undefined" && navigator.platform?.startsWith("Win")
 
@@ -128,6 +133,36 @@ export default function SettingsPage() {
     }
   }
 
+  const handleChangeCredentials = async () => {
+    if (!credCurrentPass || !credNewUser.trim() || !credNewPass.trim()) return
+    setCredSaving(true)
+    setCredMsg(null)
+    try {
+      const res = await fetch("/api/auth/credentials", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: credCurrentPass,
+          newUsername: credNewUser.trim(),
+          newPassword: credNewPass.trim(),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setCredMsg({ type: "err", text: data.error || "Failed" })
+      } else {
+        setCredMsg({ type: "ok", text: "Credentials updated. Use new credentials on next login." })
+        setCredCurrentPass("")
+        setCredNewUser("")
+        setCredNewPass("")
+      }
+    } catch {
+      setCredMsg({ type: "err", text: "Failed to update credentials" })
+    } finally {
+      setCredSaving(false)
+    }
+  }
+
   const selectedDays = schedule.daysOfWeek.split(",").filter(Boolean)
 
   const toggleDay = (dayIndex: string) => {
@@ -178,7 +213,7 @@ export default function SettingsPage() {
       </div>
 
       {/* General */}
-      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--card-foreground))]">
           General
         </h2>
@@ -202,7 +237,7 @@ export default function SettingsPage() {
                 className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
               >
                 <FolderOpen className="h-4 w-4" />
-                Browse
+                <span className="hidden sm:inline">Browse</span>
               </button>
             </div>
             <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
@@ -229,7 +264,7 @@ export default function SettingsPage() {
                 className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
               >
                 <FolderOpen className="h-4 w-4" />
-                Browse
+                <span className="hidden sm:inline">Browse</span>
               </button>
             </div>
             <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
@@ -293,7 +328,7 @@ export default function SettingsPage() {
                 className="inline-flex items-center gap-1.5 rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--secondary))] px-3 py-2 text-sm text-[hsl(var(--secondary-foreground))] hover:opacity-90"
               >
                 <FolderOpen className="h-4 w-4" />
-                Browse
+                <span className="hidden sm:inline">Browse</span>
               </button>
             </div>
           </div>
@@ -321,7 +356,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Schedule */}
-      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--card-foreground))]">
           Schedule
         </h2>
@@ -491,7 +526,7 @@ export default function SettingsPage() {
       </section>
 
       {/* Notifications */}
-      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--card-foreground))]">
           Notifications
         </h2>
@@ -604,8 +639,65 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      {/* Security */}
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
+        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-[hsl(var(--card-foreground))]">
+          <KeyRound className="h-5 w-5" />
+          Security
+        </h2>
+        <div className="space-y-4">
+          <p className="text-xs text-[hsl(var(--muted-foreground))]">
+            Change the login credentials. The new credentials will be used on next login.
+          </p>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Current Password</label>
+            <input
+              type="password"
+              value={credCurrentPass}
+              onChange={(e) => setCredCurrentPass(e.target.value)}
+              className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+            />
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">New Username</label>
+              <input
+                type="text"
+                value={credNewUser}
+                onChange={(e) => setCredNewUser(e.target.value)}
+                autoComplete="off"
+                className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">New Password</label>
+              <input
+                type="password"
+                value={credNewPass}
+                onChange={(e) => setCredNewPass(e.target.value)}
+                autoComplete="new-password"
+                className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]"
+              />
+            </div>
+          </div>
+          {credMsg && (
+            <p className={`text-sm ${credMsg.type === "ok" ? "text-green-400" : "text-red-400"}`}>
+              {credMsg.text}
+            </p>
+          )}
+          <button
+            onClick={handleChangeCredentials}
+            disabled={credSaving || !credCurrentPass || !credNewUser.trim() || !credNewPass.trim()}
+            className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
+          >
+            {credSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+            Update Credentials
+          </button>
+        </div>
+      </section>
+
       {/* System Info */}
-      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-6">
+      <section className="rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))] p-4 sm:p-6">
         <h2 className="mb-4 text-lg font-semibold text-[hsl(var(--card-foreground))]">
           System Information
         </h2>

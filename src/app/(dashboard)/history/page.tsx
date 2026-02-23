@@ -113,8 +113,8 @@ export default function HistoryPage() {
                   <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Title</th>
                   <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Status</th>
                   <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] md:table-cell">Duration</th>
-                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size In</th>
-                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size Out</th>
+                  <th className="px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))]">Size</th>
+                  <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] sm:table-cell">Out</th>
                   <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] sm:table-cell">Ratio</th>
                   <th className="hidden px-3 py-3 text-left font-medium text-[hsl(var(--muted-foreground))] lg:table-cell">Date</th>
                 </tr>
@@ -145,7 +145,7 @@ export default function HistoryPage() {
                       <td className="px-3 py-3 font-mono text-[hsl(var(--muted-foreground))]">
                         {formatSize(item.fileSizeIn)}
                       </td>
-                      <td className="px-3 py-3 font-mono text-[hsl(var(--muted-foreground))]">
+                      <td className="hidden px-3 py-3 font-mono text-[hsl(var(--muted-foreground))] sm:table-cell">
                         {formatSize(item.fileSizeOut)}
                       </td>
                       <td className="hidden px-3 py-3 font-mono text-[hsl(var(--muted-foreground))] sm:table-cell">

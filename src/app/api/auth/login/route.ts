@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSessionToken, getCredentials } from "@/lib/auth"
+import { getDb } from "@/lib/db"
+
+function getEffectiveCredentials(): { username: string; password: string } {
+  try {
+    const db = getDb()
+    const dbUser = db.prepare("SELECT value FROM settings WHERE key = ?").get("auth_username") as { value: string } | undefined
+    const dbPass = db.prepare("SELECT value FROM settings WHERE key = ?").get("auth_password") as { value: string } | undefined
+    if (dbUser?.value && dbPass?.value) {
+      return { username: dbUser.value, password: dbPass.value }
+    }
+  } catch {
+    // DB not available, fall back to env
+  }
+  return getCredentials()
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const creds = getCredentials()
+    const creds = getEffectiveCredentials()
 
     if (username !== creds.username || password !== creds.password) {
       return NextResponse.json(
