@@ -19,6 +19,8 @@ function rowToWatcher(row: any): WatchedFolder {
     minFileSize: row.min_file_size,
     deleteSource: !!row.delete_source,
     replaceSource: !!row.replace_source,
+    skipIfLarger: !!row.skip_if_larger,
+    fallbackPresetId: row.fallback_preset_id,
     lastScanAt: row.last_scan_at,
     createdAt: row.created_at,
   }
@@ -75,13 +77,15 @@ export async function PUT(
     const minFileSize = body.minFileSize ?? existing.min_file_size
     const deleteSource = body.deleteSource !== undefined ? (body.deleteSource ? 1 : 0) : existing.delete_source
     const replaceSource = body.replaceSource !== undefined ? (body.replaceSource ? 1 : 0) : existing.replace_source
+    const skipIfLarger = body.skipIfLarger !== undefined ? (body.skipIfLarger ? 1 : 0) : (existing.skip_if_larger || 0)
+    const fallbackPresetId = body.fallbackPresetId !== undefined ? body.fallbackPresetId : (existing.fallback_preset_id || null)
 
     db.prepare(`
       UPDATE watched_folders SET path = ?, enabled = ?, recursive = ?, scan_interval = ?,
         file_extensions = ?, codec_filter = ?, preset_id = ?, output_mode = ?, output_dir = ?, output_pattern = ?, min_file_size = ?,
-        delete_source = ?, replace_source = ?
+        delete_source = ?, replace_source = ?, skip_if_larger = ?, fallback_preset_id = ?
       WHERE id = ?
-    `).run(path, enabled, recursive, scanInterval, fileExtensions, codecFilter, presetId, outputMode, outputDir, outputPattern, minFileSize, deleteSource, replaceSource, id)
+    `).run(path, enabled, recursive, scanInterval, fileExtensions, codecFilter, presetId, outputMode, outputDir, outputPattern, minFileSize, deleteSource, replaceSource, skipIfLarger, fallbackPresetId, id)
 
     // Restart the watcher with new settings
     const watcherManager = getWatcherManager()

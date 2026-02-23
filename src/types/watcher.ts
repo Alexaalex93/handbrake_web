@@ -15,6 +15,8 @@ export interface WatchedFolder {
   minFileSize: number
   deleteSource: boolean
   replaceSource: boolean
+  skipIfLarger: boolean
+  fallbackPresetId: number | null
   lastScanAt: string | null
   createdAt: string
 }

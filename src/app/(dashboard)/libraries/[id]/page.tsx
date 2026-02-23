@@ -86,6 +86,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [batchPresetId, setBatchPresetId] = useState<number | null>(null)
   const [batchReplaceSource, setBatchReplaceSource] = useState(false)
   const [batchDeleteSource, setBatchDeleteSource] = useState(false)
+  const [batchSkipIfLarger, setBatchSkipIfLarger] = useState(false)
+  const [batchFallbackPresetId, setBatchFallbackPresetId] = useState<number | null>(null)
   const [showWatcherDialog, setShowWatcherDialog] = useState(false)
   const [watcherSaving, setWatcherSaving] = useState(false)
   const [watcherPresetId, setWatcherPresetId] = useState<number | null>(null)
@@ -95,6 +97,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [watcherOutputPattern, setWatcherOutputPattern] = useState("{name}_encoded.{ext}")
   const [watcherDeleteSource, setWatcherDeleteSource] = useState(false)
   const [watcherReplaceSource, setWatcherReplaceSource] = useState(false)
+  const [watcherSkipIfLarger, setWatcherSkipIfLarger] = useState(false)
+  const [watcherFallbackPresetId, setWatcherFallbackPresetId] = useState<number | null>(null)
   const [watcherError, setWatcherError] = useState("")
   const [viewMode, setViewMode] = useState<"table" | "tree">("table")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
@@ -461,6 +465,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
     setBatchPresetId(null)
     setBatchReplaceSource(false)
     setBatchDeleteSource(false)
+    setBatchSkipIfLarger(false)
+    setBatchFallbackPresetId(null)
     setShowBatchDialog(true)
   }
 
@@ -475,6 +481,10 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
       if (batchPresetId) body.presetId = batchPresetId
       if (batchReplaceSource) body.replaceSource = true
       else if (batchDeleteSource) body.deleteSource = true
+      if (batchSkipIfLarger) {
+        body.skipIfLarger = true
+        if (batchFallbackPresetId) body.fallbackPresetId = batchFallbackPresetId
+      }
 
       const res = await fetch("/api/tasks/batch", {
         method: "POST",
@@ -513,6 +523,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
           codecFilter: codecFilter !== "all" ? codecFilter : "",
           deleteSource: watcherDeleteSource,
           replaceSource: watcherReplaceSource,
+          skipIfLarger: watcherSkipIfLarger,
+          fallbackPresetId: watcherFallbackPresetId,
         }),
       })
       if (!res.ok) {
@@ -547,6 +559,8 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               setWatcherPresetId(null)
               setWatcherDeleteSource(false)
               setWatcherReplaceSource(false)
+              setWatcherSkipIfLarger(false)
+              setWatcherFallbackPresetId(null)
               setWatcherError("")
               setShowWatcherDialog(true)
             }}
@@ -976,6 +990,42 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                   </label>
                 </div>
               </div>
+
+              {/* Skip if larger */}
+              <div>
+                <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                  <input
+                    type="checkbox"
+                    checked={batchSkipIfLarger}
+                    onChange={(e) => {
+                      setBatchSkipIfLarger(e.target.checked)
+                      if (!e.target.checked) setBatchFallbackPresetId(null)
+                    }}
+                    className="accent-[hsl(var(--primary))]"
+                  />
+                  Skip if output is larger than source
+                </label>
+                {batchSkipIfLarger && (
+                  <div className="mt-2 ml-6">
+                    <label className="mb-1 block text-xs text-[hsl(var(--muted-foreground))]">Fallback preset (retry with more compression)</label>
+                    <select
+                      value={batchFallbackPresetId ?? ""}
+                      onChange={(e) => setBatchFallbackPresetId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))]"
+                    >
+                      <option value="">None (discard directly)</option>
+                      {presets.filter(p => p.id !== batchPresetId).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                      {batchFallbackPresetId
+                        ? "If output > source → retry with fallback. If still larger → discard."
+                        : "If output > source → discard output, keep original."}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -1112,6 +1162,37 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                 <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Output Pattern</label>
                 <input type="text" value={watcherOutputPattern} onChange={(e) => setWatcherOutputPattern(e.target.value)}
                   className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+              </div>
+
+              {/* Skip if larger */}
+              <div>
+                <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+                  <input
+                    type="checkbox"
+                    checked={watcherSkipIfLarger}
+                    onChange={(e) => {
+                      setWatcherSkipIfLarger(e.target.checked)
+                      if (!e.target.checked) setWatcherFallbackPresetId(null)
+                    }}
+                    className="accent-[hsl(var(--primary))]"
+                  />
+                  Skip if output is larger than source
+                </label>
+                {watcherSkipIfLarger && (
+                  <div className="mt-2 ml-6">
+                    <label className="mb-1 block text-xs text-[hsl(var(--muted-foreground))]">Fallback preset</label>
+                    <select
+                      value={watcherFallbackPresetId ?? ""}
+                      onChange={(e) => setWatcherFallbackPresetId(e.target.value ? Number(e.target.value) : null)}
+                      className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))]"
+                    >
+                      <option value="">None (discard directly)</option>
+                      {presets.filter(p => p.id !== watcherPresetId).map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {watcherError && <p className="text-sm text-[hsl(var(--destructive))]">{watcherError}</p>}

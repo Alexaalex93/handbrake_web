@@ -1,16 +1,17 @@
 "use client"
 
 import useSWR from "swr"
-import { Clock, Loader2, CheckCircle2, XCircle, Ban } from "lucide-react"
+import { Clock, Loader2, CheckCircle2, XCircle, Ban, SkipForward } from "lucide-react"
 import Link from "next/link"
 import type { TaskHistory } from "@/types/task"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const statusConfig = {
+const statusConfig: Record<string, { icon: any; color: string }> = {
   completed: { icon: CheckCircle2, color: "text-[hsl(var(--primary))]" },
   failed: { icon: XCircle, color: "text-[hsl(var(--destructive))]" },
   cancelled: { icon: Ban, color: "text-[hsl(var(--muted-foreground))]" },
+  skipped: { icon: SkipForward, color: "text-orange-400" },
 }
 
 export function RecentHistoryCard() {
@@ -50,7 +51,7 @@ export function RecentHistoryCard() {
       ) : (
         <div className="space-y-2">
           {items.map((item) => {
-            const cfg = statusConfig[item.status]
+            const cfg = statusConfig[item.status] || statusConfig.cancelled
             const StatusIcon = cfg.icon
             return (
               <div

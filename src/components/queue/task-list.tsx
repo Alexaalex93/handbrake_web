@@ -18,6 +18,7 @@ const statusStyles: Record<TaskStatus, { label: string; classes: string }> = {
   completed: { label: "Completed", classes: "bg-[hsl(var(--primary))]/20 text-[hsl(var(--primary))]" },
   failed: { label: "Failed", classes: "bg-[hsl(var(--destructive))]/20 text-[hsl(var(--destructive))]" },
   cancelled: { label: "Cancelled", classes: "bg-gray-600/20 text-gray-400" },
+  skipped: { label: "Skipped", classes: "bg-orange-500/20 text-orange-400" },
 }
 
 interface TaskListProps {

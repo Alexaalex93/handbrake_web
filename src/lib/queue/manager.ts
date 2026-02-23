@@ -235,9 +235,88 @@ class QueueManager {
 
         // Capture source file size BEFORE any post-encode operations (delete/replace)
         let sourceSizeIn = 0
-        const taskRow = db.prepare("SELECT delete_source, replace_source, source_path, output_path FROM tasks WHERE id = ?").get(taskId) as any
+        const taskRow = db.prepare("SELECT delete_source, replace_source, source_path, output_path, skip_if_larger, fallback_preset_id, is_fallback_retry, preset_id, title FROM tasks WHERE id = ?").get(taskId) as any
         if (taskRow) {
           try { sourceSizeIn = fs.statSync(taskRow.source_path).size } catch {}
+        }
+
+        // ── Skip-if-larger check ────────────────────────────────────────
+        if (taskRow && taskRow.skip_if_larger && fileSize > 0 && sourceSizeIn > 0 && fileSize >= sourceSizeIn) {
+          const pctLarger = ((fileSize / sourceSizeIn - 1) * 100).toFixed(1)
+          console.log(`[handbrake] Task ${taskId}: output (${(fileSize / 1048576).toFixed(1)} MB) >= source (${(sourceSizeIn / 1048576).toFixed(1)} MB) — ${pctLarger}% larger`)
+
+          // Delete the larger output file
+          try { fs.unlinkSync(outputPath) } catch {}
+
+          if (!taskRow.is_fallback_retry && taskRow.fallback_preset_id) {
+            // Retry with fallback preset
+            const fallbackPreset = db.prepare("SELECT id, name, options_json FROM presets WHERE id = ?").get(taskRow.fallback_preset_id) as any
+            if (fallbackPreset) {
+              console.log(`[handbrake] Task ${taskId}: retrying with fallback preset "${fallbackPreset.name}"`)
+
+              // Mark current task as skipped and move to history
+              db.prepare(`
+                UPDATE tasks SET status = 'skipped', progress = 1, completed_at = datetime('now'), file_size = ?, file_size_in = ?, error_message = ?
+                WHERE id = ?
+              `).run(fileSize, sourceSizeIn, `Output larger than source (${pctLarger}%), retrying with fallback preset "${fallbackPreset.name}"`, taskId)
+              emitEvent({ type: "task:status", taskId, data: { status: "skipped" } })
+              this.moveToHistory(taskId)
+
+              // Create a new task with the fallback preset
+              const maxOrder = db.prepare("SELECT COALESCE(MAX(sort_order), 0) as max_order FROM tasks").get() as { max_order: number }
+              const fallbackOptions = JSON.parse(fallbackPreset.options_json)
+              // Recompute output path with fallback format
+              const fallbackFormat = fallbackOptions.container?.format || "mkv"
+              const srcDir = path.dirname(taskRow.source_path)
+              const srcExt = path.extname(taskRow.source_path)
+              const srcBase = path.basename(taskRow.source_path, srcExt)
+              const fallbackOutput = path.join(srcDir, `${srcBase}_encoded.${fallbackFormat}`)
+
+              db.prepare(`
+                INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source, replace_source, skip_if_larger, fallback_preset_id, is_fallback_retry)
+                VALUES (?, ?, ?, 'queued', 1, ?, ?, ?, ?, ?, 1, NULL, 1)
+              `).run(
+                taskRow.title,
+                taskRow.source_path,
+                fallbackOutput,
+                maxOrder.max_order + 1,
+                fallbackPreset.id,
+                JSON.stringify(fallbackOptions),
+                taskRow.delete_source || 0,
+                taskRow.replace_source || 0
+              )
+              console.log(`[handbrake] Task ${taskId}: fallback task created for "${taskRow.title}"`)
+              emitEvent({ type: "queue:changed" })
+              setTimeout(() => this.processQueue(), 500)
+              return
+            }
+          }
+
+          // No fallback or already retried — discard
+          const reason = taskRow.is_fallback_retry
+            ? `Fallback also larger than source (${pctLarger}%), discarded`
+            : `Output larger than source (${pctLarger}%), discarded`
+          console.log(`[handbrake] Task ${taskId}: ${reason}`)
+
+          db.prepare(`
+            UPDATE tasks SET status = 'skipped', progress = 1, completed_at = datetime('now'), file_size = ?, file_size_in = ?, error_message = ?
+            WHERE id = ?
+          `).run(fileSize, sourceSizeIn, reason, taskId)
+          emitEvent({ type: "task:status", taskId, data: { status: "skipped" } })
+
+          // Send notification about skip
+          notifyEncodingComplete({
+            title: `⏭ ${path.basename(sourcePath)}`,
+            sourcePath,
+            sizeIn: sourceSizeIn,
+            sizeOut: fileSize,
+            duration: Math.round((Date.now() - job.startedAt) / 1000),
+          }).catch(() => {})
+
+          this.moveToHistory(taskId)
+          emitEvent({ type: "queue:changed" })
+          setTimeout(() => this.processQueue(), 500)
+          return
         }
 
         db.prepare(`

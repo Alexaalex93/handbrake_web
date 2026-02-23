@@ -213,6 +213,35 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE schedule ADD COLUMN day_schedules TEXT DEFAULT NULL")
   }
 
+  // Add skip_if_larger and fallback_preset_id to tasks
+  try {
+    db.prepare("SELECT skip_if_larger FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN skip_if_larger INTEGER NOT NULL DEFAULT 0")
+  }
+  try {
+    db.prepare("SELECT fallback_preset_id FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN fallback_preset_id INTEGER DEFAULT NULL")
+  }
+  try {
+    db.prepare("SELECT is_fallback_retry FROM tasks LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE tasks ADD COLUMN is_fallback_retry INTEGER NOT NULL DEFAULT 0")
+  }
+
+  // Add skip_if_larger and fallback_preset_id to watched_folders
+  try {
+    db.prepare("SELECT skip_if_larger FROM watched_folders LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE watched_folders ADD COLUMN skip_if_larger INTEGER NOT NULL DEFAULT 0")
+  }
+  try {
+    db.prepare("SELECT fallback_preset_id FROM watched_folders LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE watched_folders ADD COLUMN fallback_preset_id INTEGER DEFAULT NULL")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0

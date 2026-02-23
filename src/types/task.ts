@@ -8,6 +8,7 @@ export type TaskStatus =
   | "completed"
   | "failed"
   | "cancelled"
+  | "skipped"
 
 export interface Task {
   id: number
@@ -42,7 +43,7 @@ export interface TaskHistory {
   title: string
   sourcePath: string
   outputPath: string
-  status: "completed" | "failed" | "cancelled"
+  status: "completed" | "failed" | "cancelled" | "skipped"
   options: EncodingOptions
   presetName: string | null
   fileSizeIn: number | null

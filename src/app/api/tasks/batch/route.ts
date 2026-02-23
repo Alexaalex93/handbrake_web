@@ -17,6 +17,8 @@ interface BatchRequest {
   presetId?: number
   deleteSource?: boolean
   replaceSource?: boolean
+  skipIfLarger?: boolean
+  fallbackPresetId?: number
 }
 
 export async function POST(request: NextRequest) {
@@ -49,6 +51,8 @@ export async function POST(request: NextRequest) {
     const presetId = body.presetId ?? null
     const deleteSource = body.deleteSource ? 1 : 0
     const replaceSource = body.replaceSource ? 1 : 0
+    const skipIfLarger = body.skipIfLarger ? 1 : 0
+    const fallbackPresetId = body.fallbackPresetId ?? null
     const format = options.container?.format || "mkv"
 
     // Get current max sort_order
@@ -58,8 +62,8 @@ export async function POST(request: NextRequest) {
     let sortOrder = maxOrder.max_order + 1
 
     const insertStmt = db.prepare(`
-      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source, replace_source)
-      VALUES (?, ?, ?, 'queued', 0, ?, ?, ?, ?, ?)
+      INSERT INTO tasks (title, source_path, output_path, status, priority, sort_order, preset_id, options_json, delete_source, replace_source, skip_if_larger, fallback_preset_id)
+      VALUES (?, ?, ?, 'queued', 0, ?, ?, ?, ?, ?, ?, ?)
     `)
 
     const optionsJson = JSON.stringify(options)
@@ -86,7 +90,7 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        insertStmt.run(title, item.sourcePath, outputPath, sortOrder++, presetId, optionsJson, deleteSource, replaceSource)
+        insertStmt.run(title, item.sourcePath, outputPath, sortOrder++, presetId, optionsJson, deleteSource, replaceSource, skipIfLarger, fallbackPresetId)
         created++
       }
     })

@@ -37,6 +37,8 @@ function AddWatcherDialog({
   const [codecFilter, setCodecFilter] = useState<string[]>([])
   const [deleteSource, setDeleteSource] = useState(false)
   const [replaceSource, setReplaceSource] = useState(false)
+  const [skipIfLarger, setSkipIfLarger] = useState(false)
+  const [fallbackPresetId, setFallbackPresetId] = useState<number | null>(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [showBrowser, setShowBrowser] = useState(false)
@@ -72,6 +74,8 @@ function AddWatcherDialog({
           codecFilter: codecFilter.join(","),
           deleteSource,
           replaceSource,
+          skipIfLarger,
+          fallbackPresetId,
         }),
       })
       if (!res.ok) {
@@ -195,6 +199,41 @@ function AddWatcherDialog({
                 Replace original
               </label>
             </div>
+          </div>
+
+          <div>
+            <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+              <input
+                type="checkbox"
+                checked={skipIfLarger}
+                onChange={(e) => {
+                  setSkipIfLarger(e.target.checked)
+                  if (!e.target.checked) setFallbackPresetId(null)
+                }}
+                className="accent-[hsl(var(--primary))]"
+              />
+              Skip if output is larger than source
+            </label>
+            {skipIfLarger && (
+              <div className="mt-2 ml-6">
+                <label className="mb-1 block text-xs text-[hsl(var(--muted-foreground))]">Fallback preset (retry with more compression)</label>
+                <select
+                  value={fallbackPresetId ?? ""}
+                  onChange={(e) => setFallbackPresetId(e.target.value ? Number(e.target.value) : null)}
+                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-1.5 text-sm text-[hsl(var(--foreground))]"
+                >
+                  <option value="">None (discard directly)</option>
+                  {presets.filter(p => p.id !== presetId).map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                  {fallbackPresetId
+                    ? "If output > source → retry with fallback. If still larger → discard."
+                    : "If output > source → discard output, keep original."}
+                </p>
+              </div>
+            )}
           </div>
 
           <div>
@@ -443,6 +482,14 @@ export default function WatchersPage() {
                         : "Keep original"}
                   </span>
                 </div>
+                {watcher.skipIfLarger && (
+                  <div className="flex justify-between">
+                    <span>Size check</span>
+                    <span className="text-[hsl(var(--card-foreground))]">
+                      Skip if larger{watcher.fallbackPresetId ? " (+ fallback)" : ""}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span>Last scan</span>
                   <span className="text-[hsl(var(--card-foreground))]">

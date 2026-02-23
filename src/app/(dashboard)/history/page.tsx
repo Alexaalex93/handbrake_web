@@ -10,15 +10,17 @@ import {
   CheckCircle2,
   XCircle,
   Ban,
+  SkipForward,
 } from "lucide-react"
 import type { TaskHistory } from "@/types/task"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-const statusConfig = {
+const statusConfig: Record<string, { icon: any; label: string; classes: string }> = {
   completed: { icon: CheckCircle2, label: "Completed", classes: "bg-[hsl(var(--primary))]/20 text-[hsl(var(--primary))]" },
   failed: { icon: XCircle, label: "Failed", classes: "bg-[hsl(var(--destructive))]/20 text-[hsl(var(--destructive))]" },
   cancelled: { icon: Ban, label: "Cancelled", classes: "bg-gray-600/20 text-gray-400" },
+  skipped: { icon: SkipForward, label: "Skipped", classes: "bg-orange-500/20 text-orange-400" },
 }
 
 function formatDuration(seconds: number | null): string {
@@ -85,6 +87,7 @@ export default function HistoryPage() {
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
             <option value="cancelled">Cancelled</option>
+            <option value="skipped">Skipped</option>
           </select>
           <button
             onClick={handleClearHistory}
@@ -121,7 +124,7 @@ export default function HistoryPage() {
               </thead>
               <tbody>
                 {items.map((item) => {
-                  const cfg = statusConfig[item.status]
+                  const cfg = statusConfig[item.status] || statusConfig.cancelled
                   const ratio =
                     item.fileSizeIn && item.fileSizeOut
                       ? ((item.fileSizeOut / item.fileSizeIn) * 100).toFixed(0) + "%"
@@ -135,7 +138,10 @@ export default function HistoryPage() {
                         {item.title}
                       </td>
                       <td className="px-3 py-3">
-                        <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cfg.classes}`}>
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cfg.classes}`}
+                          title={item.errorMessage || undefined}
+                        >
                           {cfg.label}
                         </span>
                       </td>
