@@ -163,6 +163,26 @@ export default function SettingsPage() {
     }
   }
 
+  const handleResetCredentials = async () => {
+    setCredSaving(true)
+    setCredMsg(null)
+    try {
+      const res = await fetch("/api/auth/credentials", { method: "DELETE" })
+      if (!res.ok) {
+        setCredMsg({ type: "err", text: "Failed to reset" })
+      } else {
+        setCredMsg({ type: "ok", text: "Credentials reset to defaults (admin / admin1234)." })
+        setCredCurrentPass("")
+        setCredNewUser("")
+        setCredNewPass("")
+      }
+    } catch {
+      setCredMsg({ type: "err", text: "Failed to reset credentials" })
+    } finally {
+      setCredSaving(false)
+    }
+  }
+
   const selectedDays = schedule.daysOfWeek.split(",").filter(Boolean)
 
   const toggleDay = (dayIndex: string) => {
@@ -685,14 +705,23 @@ export default function SettingsPage() {
               {credMsg.text}
             </p>
           )}
-          <button
-            onClick={handleChangeCredentials}
-            disabled={credSaving || !credCurrentPass || !credNewUser.trim() || !credNewPass.trim()}
-            className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
-          >
-            {credSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
-            Update Credentials
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={handleChangeCredentials}
+              disabled={credSaving || !credCurrentPass || !credNewUser.trim() || !credNewPass.trim()}
+              className="inline-flex items-center gap-2 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50"
+            >
+              {credSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
+              Update Credentials
+            </button>
+            <button
+              onClick={handleResetCredentials}
+              disabled={credSaving}
+              className="inline-flex items-center gap-2 rounded-md border border-[hsl(var(--border))] px-4 py-2 text-sm text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))] disabled:opacity-50"
+            >
+              Reset to defaults
+            </button>
+          </div>
         </div>
       </section>
 
