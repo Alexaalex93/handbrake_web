@@ -11,6 +11,7 @@ import {
   ToggleRight,
   Trash2,
   Library,
+  Pencil,
   X,
 } from "lucide-react"
 import { FileBrowser } from "@/components/shared/file-browser"
@@ -19,27 +20,30 @@ import type { Preset } from "@/types/preset"
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json())
 
-function AddWatcherDialog({
+function WatcherDialog({
   onClose,
-  onCreated,
+  onSaved,
+  watcher,
 }: {
   onClose: () => void
-  onCreated: () => void
+  onSaved: () => void
+  watcher?: WatchedFolder | null
 }) {
-  const [path, setPath] = useState("")
-  const [recursive, setRecursive] = useState(true)
-  const [scanInterval, setScanInterval] = useState(60)
-  const [fileExtensions, setFileExtensions] = useState(".mkv,.mp4,.avi,.mov,.wmv,.flv,.ts,.m4v,.webm")
-  const [outputMode, setOutputMode] = useState<"fixed" | "beside_source">("beside_source")
-  const [outputDir, setOutputDir] = useState("")
-  const [outputPattern, setOutputPattern] = useState("{name}_encoded.{ext}")
-  const [presetId, setPresetId] = useState<number | null>(null)
-  const [codecFilter, setCodecFilter] = useState<string[]>([])
-  const [deleteSource, setDeleteSource] = useState(false)
-  const [replaceSource, setReplaceSource] = useState(false)
-  const [skipIfLarger, setSkipIfLarger] = useState(false)
-  const [fallbackPresetId, setFallbackPresetId] = useState<number | null>(null)
-  const [startTime, setStartTime] = useState("")
+  const isEdit = !!watcher
+  const [path, setPath] = useState(watcher?.path ?? "")
+  const [recursive, setRecursive] = useState(watcher?.recursive ?? true)
+  const [scanInterval, setScanInterval] = useState(watcher?.scanInterval ?? 60)
+  const [fileExtensions, setFileExtensions] = useState(watcher?.fileExtensions ?? ".mkv,.mp4,.avi,.mov,.wmv,.flv,.ts,.m4v,.webm")
+  const [outputMode, setOutputMode] = useState<"fixed" | "beside_source">(watcher?.outputMode as "fixed" | "beside_source" ?? "beside_source")
+  const [outputDir, setOutputDir] = useState(watcher?.outputDir ?? "")
+  const [outputPattern, setOutputPattern] = useState(watcher?.outputPattern ?? "{name}_encoded.{ext}")
+  const [presetId, setPresetId] = useState<number | null>(watcher?.presetId ?? null)
+  const [codecFilter, setCodecFilter] = useState<string[]>(watcher?.codecFilter ? watcher.codecFilter.split(",").map(c => c.trim()).filter(Boolean) : [])
+  const [deleteSource, setDeleteSource] = useState(watcher?.deleteSource ?? false)
+  const [replaceSource, setReplaceSource] = useState(watcher?.replaceSource ?? false)
+  const [skipIfLarger, setSkipIfLarger] = useState(watcher?.skipIfLarger ?? false)
+  const [fallbackPresetId, setFallbackPresetId] = useState<number | null>(watcher?.fallbackPresetId ?? null)
+  const [startTime, setStartTime] = useState(watcher?.startTime ?? "")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [showBrowser, setShowBrowser] = useState(false)
@@ -60,34 +64,37 @@ function AddWatcherDialog({
     setSaving(true)
     setError("")
     try {
-      const res = await fetch("/api/watchers", {
-        method: "POST",
+      const payload = {
+        path: path.trim(),
+        recursive,
+        scanInterval,
+        fileExtensions,
+        outputMode,
+        outputDir: outputMode === "fixed" ? outputDir : null,
+        outputPattern,
+        presetId,
+        codecFilter: codecFilter.join(","),
+        deleteSource,
+        replaceSource,
+        skipIfLarger,
+        fallbackPresetId,
+        startTime: startTime || null,
+      }
+      const url = isEdit ? `/api/watchers/${watcher.id}` : "/api/watchers"
+      const method = isEdit ? "PUT" : "POST"
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: path.trim(),
-          recursive,
-          scanInterval,
-          fileExtensions,
-          outputMode,
-          outputDir: outputMode === "fixed" ? outputDir : null,
-          outputPattern,
-          presetId,
-          codecFilter: codecFilter.join(","),
-          deleteSource,
-          replaceSource,
-          skipIfLarger,
-          fallbackPresetId,
-          startTime: startTime || null,
-        }),
+        body: JSON.stringify(payload),
       })
       if (!res.ok) {
         const data = await res.json()
-        setError(data.error || "Failed to create watcher")
+        setError(data.error || `Failed to ${isEdit ? "update" : "create"} watcher`)
         return
       }
-      onCreated()
+      onSaved()
     } catch {
-      setError("Failed to create watcher")
+      setError(`Failed to ${isEdit ? "update" : "create"} watcher`)
     } finally {
       setSaving(false)
     }
@@ -97,7 +104,7 @@ function AddWatcherDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="mx-4 flex max-h-[90vh] w-full max-w-lg flex-col rounded-lg border border-[hsl(var(--border))] bg-[hsl(var(--card))]" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-[hsl(var(--border))] px-6 py-4">
-          <h2 className="text-lg font-semibold text-[hsl(var(--card-foreground))]">Add Watcher</h2>
+          <h2 className="text-lg font-semibold text-[hsl(var(--card-foreground))]">{isEdit ? "Edit Watcher" : "Add Watcher"}</h2>
           <button onClick={onClose} className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:bg-[hsl(var(--accent))]">
             <X className="h-5 w-5" />
           </button>
@@ -186,21 +193,21 @@ function AddWatcherDialog({
             <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">After Encoding</label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="radio" name="watcherPostAction" value="keep"
+                <input type="radio" name={isEdit ? "editPostAction" : "watcherPostAction"} value="keep"
                   checked={!deleteSource && !replaceSource}
                   onChange={() => { setDeleteSource(false); setReplaceSource(false) }}
                   className="accent-[hsl(var(--primary))]" />
                 Keep original
               </label>
               <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="radio" name="watcherPostAction" value="delete"
+                <input type="radio" name={isEdit ? "editPostAction" : "watcherPostAction"} value="delete"
                   checked={deleteSource && !replaceSource}
                   onChange={() => { setDeleteSource(true); setReplaceSource(false) }}
                   className="accent-[hsl(var(--primary))]" />
                 Delete original
               </label>
               <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="radio" name="watcherPostAction" value="replace"
+                <input type="radio" name={isEdit ? "editPostAction" : "watcherPostAction"} value="replace"
                   checked={replaceSource}
                   onChange={() => { setDeleteSource(false); setReplaceSource(true) }}
                   className="accent-[hsl(var(--primary))]" />
@@ -248,12 +255,12 @@ function AddWatcherDialog({
             <label className="mb-2 block text-sm font-medium text-[hsl(var(--card-foreground))]">Output Location</label>
             <div className="flex gap-4">
               <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="radio" name="watcherOutput" value="beside_source" checked={outputMode === "beside_source"}
+                <input type="radio" name={isEdit ? "editOutput" : "watcherOutput"} value="beside_source" checked={outputMode === "beside_source"}
                   onChange={() => setOutputMode("beside_source")} className="accent-[hsl(var(--primary))]" />
                 Beside Source
               </label>
               <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="radio" name="watcherOutput" value="fixed" checked={outputMode === "fixed"}
+                <input type="radio" name={isEdit ? "editOutput" : "watcherOutput"} value="fixed" checked={outputMode === "fixed"}
                   onChange={() => setOutputMode("fixed")} className="accent-[hsl(var(--primary))]" />
                 Fixed Directory
               </label>
@@ -295,7 +302,7 @@ function AddWatcherDialog({
           <button onClick={handleSave} disabled={saving}
             className="inline-flex items-center gap-1 rounded-md bg-[hsl(var(--primary))] px-4 py-2 text-sm font-medium text-[hsl(var(--primary-foreground))] hover:opacity-90 disabled:opacity-50">
             {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create
+            {isEdit ? "Save" : "Create"}
           </button>
         </div>
 
@@ -323,6 +330,7 @@ export default function WatchersPage() {
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [creatingLibId, setCreatingLibId] = useState<number | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [editingWatcher, setEditingWatcher] = useState<WatchedFolder | null>(null)
 
   const watchers = Array.isArray(data) ? data : []
 
@@ -423,6 +431,13 @@ export default function WatchersPage() {
                   </p>
                 </div>
                 <div className="ml-2 flex items-center gap-1">
+                  <button
+                    onClick={() => setEditingWatcher(watcher)}
+                    title="Edit"
+                    className="rounded p-1 text-[hsl(var(--muted-foreground))] hover:text-[hsl(var(--card-foreground))]"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
                   <button
                     onClick={() => handleCreateLibrary(watcher)}
                     disabled={creatingLibId === watcher.id}
@@ -532,10 +547,21 @@ export default function WatchersPage() {
       )}
 
       {showAdd && (
-        <AddWatcherDialog
+        <WatcherDialog
           onClose={() => setShowAdd(false)}
-          onCreated={() => {
+          onSaved={() => {
             setShowAdd(false)
+            mutate()
+          }}
+        />
+      )}
+
+      {editingWatcher && (
+        <WatcherDialog
+          watcher={editingWatcher}
+          onClose={() => setEditingWatcher(null)}
+          onSaved={() => {
+            setEditingWatcher(null)
             mutate()
           }}
         />
