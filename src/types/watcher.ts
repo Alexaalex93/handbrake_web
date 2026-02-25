@@ -17,6 +17,7 @@ export interface WatchedFolder {
   replaceSource: boolean
   skipIfLarger: boolean
   fallbackPresetId: number | null
+  startTime: string | null  // HH:MM for scheduled first scan
   lastScanAt: string | null
   createdAt: string
 }

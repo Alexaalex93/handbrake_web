@@ -99,6 +99,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
   const [watcherReplaceSource, setWatcherReplaceSource] = useState(false)
   const [watcherSkipIfLarger, setWatcherSkipIfLarger] = useState(false)
   const [watcherFallbackPresetId, setWatcherFallbackPresetId] = useState<number | null>(null)
+  const [watcherStartTime, setWatcherStartTime] = useState("")
   const [watcherError, setWatcherError] = useState("")
   const [viewMode, setViewMode] = useState<"table" | "tree">("table")
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
@@ -525,6 +526,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
           replaceSource: watcherReplaceSource,
           skipIfLarger: watcherSkipIfLarger,
           fallbackPresetId: watcherFallbackPresetId,
+          startTime: watcherStartTime || null,
         }),
       })
       if (!res.ok) {
@@ -561,6 +563,7 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
               setWatcherReplaceSource(false)
               setWatcherSkipIfLarger(false)
               setWatcherFallbackPresetId(null)
+              setWatcherStartTime("")
               setWatcherError("")
               setShowWatcherDialog(true)
             }}
@@ -1085,10 +1088,17 @@ export default function LibraryDetailPage({ params }: { params: Promise<{ id: st
                 )}
               </div>
 
-              <div>
-                <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Scan Interval (min)</label>
-                <input type="number" value={watcherInterval} onChange={(e) => setWatcherInterval(Number(e.target.value))} min={1}
-                  className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">Scan Interval (min)</label>
+                  <input type="number" value={watcherInterval} onChange={(e) => setWatcherInterval(Number(e.target.value))} min={1}
+                    className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">First Scan At</label>
+                  <input type="time" value={watcherStartTime} onChange={(e) => setWatcherStartTime(e.target.value)}
+                    className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+                </div>
               </div>
 
               <div>

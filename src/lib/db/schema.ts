@@ -242,6 +242,13 @@ export function initializeSchema(db: Database.Database) {
     db.exec("ALTER TABLE watched_folders ADD COLUMN fallback_preset_id INTEGER DEFAULT NULL")
   }
 
+  // Add start_time to watched_folders (HH:MM for scheduled first scan)
+  try {
+    db.prepare("SELECT start_time FROM watched_folders LIMIT 0").get()
+  } catch {
+    db.exec("ALTER TABLE watched_folders ADD COLUMN start_time TEXT DEFAULT NULL")
+  }
+
   // Recovery: reset any tasks stuck in "encoding" state (server crashed)
   db.prepare(`
     UPDATE tasks SET status = 'queued', progress = 0, eta_seconds = 0, fps = 0, avg_fps = 0

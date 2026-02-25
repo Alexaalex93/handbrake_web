@@ -39,6 +39,7 @@ function AddWatcherDialog({
   const [replaceSource, setReplaceSource] = useState(false)
   const [skipIfLarger, setSkipIfLarger] = useState(false)
   const [fallbackPresetId, setFallbackPresetId] = useState<number | null>(null)
+  const [startTime, setStartTime] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [showBrowser, setShowBrowser] = useState(false)
@@ -76,6 +77,7 @@ function AddWatcherDialog({
           replaceSource,
           skipIfLarger,
           fallbackPresetId,
+          startTime: startTime || null,
         }),
       })
       if (!res.ok) {
@@ -121,13 +123,19 @@ function AddWatcherDialog({
               <input type="number" value={scanInterval} onChange={(e) => setScanInterval(Number(e.target.value))} min={1}
                 className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
             </div>
-            <div className="flex items-end">
-              <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
-                <input type="checkbox" checked={recursive} onChange={(e) => setRecursive(e.target.checked)}
-                  className="accent-[hsl(var(--primary))]" />
-                Recursive scan
-              </label>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-[hsl(var(--card-foreground))]">First Scan At</label>
+              <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+                className="w-full rounded-md border border-[hsl(var(--border))] bg-[hsl(var(--input))] px-3 py-2 text-sm text-[hsl(var(--foreground))]" />
+              <p className="mt-0.5 text-xs text-[hsl(var(--muted-foreground))]">Leave empty to start immediately</p>
             </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm text-[hsl(var(--card-foreground))]">
+              <input type="checkbox" checked={recursive} onChange={(e) => setRecursive(e.target.checked)}
+                className="accent-[hsl(var(--primary))]" />
+              Recursive scan
+            </label>
           </div>
 
           <div>
@@ -488,6 +496,12 @@ export default function WatchersPage() {
                     <span className="text-[hsl(var(--card-foreground))]">
                       Skip if larger{watcher.fallbackPresetId ? " (+ fallback)" : ""}
                     </span>
+                  </div>
+                )}
+                {watcher.startTime && (
+                  <div className="flex justify-between">
+                    <span>First scan at</span>
+                    <span className="text-[hsl(var(--card-foreground))]">{watcher.startTime}</span>
                   </div>
                 )}
                 <div className="flex justify-between">
