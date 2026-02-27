@@ -29,6 +29,9 @@ function rowToWatcher(row: any): WatchedFolder {
 
 export async function GET() {
   try {
+    // Ensure watcher manager is running (safety net for server restarts)
+    getWatcherManager()
+
     const db = getDb()
     const rows = db.prepare("SELECT * FROM watched_folders ORDER BY created_at DESC").all()
     const watchers = rows.map(rowToWatcher)
